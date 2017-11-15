@@ -39,7 +39,7 @@ namespace MathUtils {
 	// a, b 可以为Vector或其他支持点乘的类型
 	template <class T1, class T2>
 	inline T1 lerp(const T1 &a, const T1 &b, const T2 t) {
-		return (1 - t) * a + t * b;
+		return a * (1 - t)  + b * t;
 	}
 
 	template <class T>

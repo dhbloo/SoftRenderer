@@ -10,7 +10,7 @@ public:
 	float x, y, z;
 	Vector3() :x(0), y(0), z(0) {};
 	Vector3(float x) :x(x), y(x), z(x) {};
-	Vector3(float x, float y, float z, float w = 1.0f) :x(x), y(y), z(z) {};
+	Vector3(float x, float y, float z) :x(x), y(y), z(z) {};
 	Vector3(const Vector3 &v) :x(v.x), y(v.y), z(v.z) {};
 	~Vector3() {};
 
@@ -48,12 +48,6 @@ public:
 		return x * v.x + y * v.y + z * v.z;
 	}
 
-	inline Vector3 operator+(const float a) const {
-		return Vector3(x + a, y + a, z + a);
-	}
-	inline Vector3 operator-(const float a) const {
-		return Vector3(x - a, y - a, z - a);
-	}
 	inline Vector3 operator*(const float a) const {
 		return Vector3(x * a, y * a, z * a);
 	}
@@ -72,15 +66,6 @@ public:
 	}
 	inline Vector3 & operator*=(const Vector3 & v) {
 		x *= v.x, y *= v.y, z *= v.z;
-		return *this;
-	}
-
-	inline Vector3 & operator+=(const float a) {
-		x += a, y += a, z += a;
-		return *this;
-	}
-	inline Vector3 & operator-=(const float a) {
-		x -= a, y -= a, z -= a;
 		return *this;
 	}
 	inline Vector3 & operator*=(const float a) {
@@ -213,12 +198,6 @@ public:
 		return x * v.x + y * v.y + z * v.z;
 	}
 
-	inline Vector4 operator+(const float a) const {
-		return Vector4(x + a, y + a, z + a);
-	}
-	inline Vector4 operator-(const float a) const {
-		return Vector4(x - a, y - a, z - a);
-	}
 	inline Vector4 operator*(const float a) const {
 		return Vector4(x * a, y * a, z * a);
 	}

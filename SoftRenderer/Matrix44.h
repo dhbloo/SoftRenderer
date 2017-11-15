@@ -190,6 +190,13 @@ public:
 		dst.w = src[0] * x[0][3] + src[1] * x[1][3] + src[2] * x[2][3] + src[3] * x[3][3];
 	}
 
+	void apply(const Vector3 &src, Vector4 &dst) const {
+		dst.x = src[0] * x[0][0] + src[1] * x[1][0] + src[2] * x[2][0] + x[3][0];
+		dst.y = src[0] * x[0][1] + src[1] * x[1][1] + src[2] * x[2][1] + x[3][1];
+		dst.z = src[0] * x[0][2] + src[1] * x[1][2] + src[2] * x[2][2] + x[3][2];
+		dst.w = src[0] * x[0][3] + src[1] * x[1][3] + src[2] * x[2][3] + x[3][3];
+	}
+
 	void apply(const Vector3 &src, Vector3 &dst) const {
 		dst.x = src[0] * x[0][0] + src[1] * x[1][0] + src[2] * x[2][0] + x[3][0];
 		dst.y = src[0] * x[0][1] + src[1] * x[1][1] + src[2] * x[2][1] + x[3][1];
@@ -225,6 +232,13 @@ public:
 		Vector3 dst;
 		applyDir(src, dst);
 		return dst;
+	}
+
+	void applyDir(const Vector3 &src, Vector4 &dst) const {
+		dst.x = src[0] * x[0][0] + src[1] * x[1][0] + src[2] * x[2][0];
+		dst.y = src[0] * x[0][1] + src[1] * x[1][1] + src[2] * x[2][1];
+		dst.z = src[0] * x[0][2] + src[1] * x[1][2] + src[2] * x[2][2];
+		dst.w = 1.0f;
 	}
 
 	// Compute the inverse of the matrix using the Gauss-Jordan (or reduced row) elimination method.

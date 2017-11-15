@@ -159,19 +159,34 @@ namespace Colors {
 
 class RGBAColor {
 public:
-	RGBColor color;
+	RGBColor rgb;
 	float alpha;
 
-	RGBAColor() : color(), alpha(1.f) {}
-	RGBAColor(const RGBColor & color, float a = 1.f) : color(color), alpha(a) {}
-	RGBAColor(float r, float g, float b, float a = 1.f) : color(r, g, b), alpha(a) {}
+	RGBAColor() : rgb(), alpha(1.f) {}
+	RGBAColor(const RGBColor & color, float a = 1.f) : rgb(color), alpha(a) {}
+	RGBAColor(float r, float g, float b, float a = 1.f) : rgb(r, g, b), alpha(a) {}
 	~RGBAColor() {}
 
-	RGBColor operator + (const RGBAColor & c) const {
-		return color * alpha + c.color * c.alpha;
+	RGBAColor operator + (const RGBAColor & c) const {
+		return RGBAColor(rgb * alpha + c.rgb * c.alpha, 1 - (1 - alpha) * (1 - c.alpha));
 	}
+
+	RGBAColor & operator += (const RGBAColor & c) {
+		rgb = rgb * alpha + c.rgb * c.alpha;
+		alpha = 1 - (1 - alpha) * (1 - c.alpha);
+		return *this;
+	}
+
 	RGBColor operator + (const RGBColor & c) const {
-		return color * alpha + c * (1 - alpha);
+		return rgb * alpha + c * (1 - alpha);
+	}
+
+	RGBAColor operator * (float k) const {
+		return RGBAColor(rgb * k, alpha);
+	}
+	RGBAColor & operator *= (float k) {
+		rgb *= k;
+		return *this;
 	}
 };
 

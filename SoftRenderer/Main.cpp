@@ -3,36 +3,35 @@
 
 using namespace std;
 
-static int sceneNum = 2;
+static int sceneNum = 3;
 static float aspect;
-static float translateZ = 1.2f;
+static float translateZ = 1.5f;
 static float rotateX = 0, rotateY = 0;
 
 void createScene(Scene & scene, int index) {
+	scene.clear();
 	shared_ptr<Mesh> m = make_shared<Mesh>();
 	switch (index) {
 	case 0:
-		m->vertices = { Vector3(0,0,0),Vector3(1,0,0),Vector3(0,1,0) };
-		m->colors = { Colors::Red, Colors::Blue, Colors::Green };
-		m->primitives = { Primitive{ 0,1,2,0,1,2 } };
-		scene.addMesh(m);
-
-		scene.setPerspective(90, aspect, 0.1f, 1000);
-		//scene.setViewMatrix(Matrix44().setLookAt(Vector3(5 * sin(t), 5 * cos(t), -3), Vector3(0, 0, 0)));
-		scene.setViewMatrix(Matrix44().translate(-0.5f, -0.5f, 0).rotate(0, 1, 0, rotateY).rotate(1, 0, 0, rotateX).translate(0, 0, translateZ));
+		m->vertices = { 
+			{ Vector3(0,0,0), Colors::Red },
+			{ Vector3(1,0,0), Colors::Blue },
+			{ Vector3(0,1,0), Colors::Green },
+		};
+		m->primitives = { Primitive{ 0,1,2 } };
+		scene.addMesh(m, Matrix44().translate(-.5f, -.5f, 0));
 		break;
 	case 1:
 		m->vertices = {
-			Vector3(-0.5f, -0.5f,  0.5f),
-			Vector3(0.5f, -0.5f,  0.5f),
-			Vector3(0.5f,  0.5f,  0.5f),
-			Vector3(-0.5f,  0.5f,  0.5f),
-			Vector3(-0.5f, -0.5f, -0.5f),
-			Vector3(-0.5f,  0.5f, -0.5f),
-			Vector3(0.5f,  0.5f, -0.5f),
-			Vector3(0.5f, -0.5f, -0.5f)
+			{ Vector3(-0.5f, -0.5f,  0.5f), Colors::Red },
+			{ Vector3(0.5f, -0.5f,  0.5f), Colors::Green },
+			{ Vector3(0.5f,  0.5f,  0.5f), Colors::Blue },
+			{ Vector3(-0.5f,  0.5f,  0.5f), Colors::White },
+			{ Vector3(-0.5f, -0.5f, -0.5f), Colors::Blue },
+			{ Vector3(-0.5f,  0.5f, -0.5f), Colors::Red },
+			{ Vector3(0.5f,  0.5f, -0.5f), Colors::Green },
+			{ Vector3(0.5f, -0.5f, -0.5f), Colors::White }
 		};
-		m->colors = { Colors::White };
 		m->primitives = {
 			Primitive{ 0,1,2 }, Primitive{ 0,2,3 },
 			Primitive{ 4,5,6 }, Primitive{ 4,6,7 },
@@ -42,11 +41,14 @@ void createScene(Scene & scene, int index) {
 			Primitive{ 4,0,3 }, Primitive{ 4,3,5 },
 		};
 		scene.addMesh(m);
-
-		scene.setPerspective(70, aspect, 0.1f, 1000);
-		scene.setViewMatrix(Matrix44().rotate(0, 1, 0, rotateY).rotate(1, 0, 0, rotateX).translate(0, 0, translateZ));
 		break;
-	default:
+	case 2:
+		for (int i = 0; i < 360; i += 5) {
+			scene.addLine(Line{
+			    Vertex { Vector3(0,0,0), Colors::White },
+			    Vertex { Vector3(0.7f * cos(i),0.7f * sin(i),1), Colors::Random() }
+			});
+		}
 		break;
 	}
 }
@@ -57,15 +59,20 @@ int main() {
 	IntBuffer image(700, 500);
 	Pipeline pipeline(image);
 
+	Scene scene;
 	Window window(image.getWidth(), image.getHeight(), _T("SoftRenderer"));
 	aspect = image.aspect();
 
-	bool kbhit = false;
-	int toggle = 0;
+	Pipeline::RenderState states[3] = { Pipeline::Wireframe, Pipeline::Color, Pipeline::Texture };
+	bool kbhit[2] = { false };
+	int sceneI = 0, modeI = 0;
+	createScene(scene, sceneI);
 	
 	while (window.is_run()) {
-		Scene scene;
-		createScene(scene, toggle);
+		//scene.setViewMatrix(Matrix44().setLookAt(Vector3(5 * sin(t), 5 * cos(t), -3), Vector3(0, 0, 0)));
+		scene.setPerspective(70, aspect, 0.5f, 1000);
+		scene.setViewMatrix(Matrix44().rotate(0, 1, 0, rotateY).rotate(1, 0, 0, rotateX).translate(0, 0, translateZ));
+
 		pipeline.render(scene);
 
 		memcpy(window(), image(), image.getSize() * sizeof(int));
@@ -74,16 +81,27 @@ int main() {
 		s << "SoftRenderer Fps:" << window.get_fps();
 		window.setTitle(_T(s.str().c_str()));
 		if (window.is_key(VK_ESCAPE)) window.destory();
-		else if (window.is_key(VK_LEFT)) rotateY -= 2.5f;
-		else if (window.is_key(VK_RIGHT)) rotateY += 2.5f;
-		else if (window.is_key(VK_DOWN)) rotateX -= 2.5f;
-		else if (window.is_key(VK_UP)) rotateX += 2.5f;
-		else if (window.is_key('W')) translateZ -= .05f;
-		else if (window.is_key('S')) translateZ += .05f;
-		else if (window.is_key(VK_SPACE)) {
-			if (!kbhit) toggle = ++toggle % sceneNum;
-			kbhit = true;
-		} else kbhit = false;
+		if (window.is_key(VK_LEFT)) rotateY -= 2.5f;
+		if (window.is_key(VK_RIGHT)) rotateY += 2.5f;
+		if (window.is_key(VK_DOWN)) rotateX -= 2.5f;
+		if (window.is_key(VK_UP)) rotateX += 2.5f;
+		if (window.is_key('W')) translateZ -= .05f;
+		if (window.is_key('S')) translateZ += .05f;
+
+		if (window.is_key(VK_CONTROL)) {
+			if (!kbhit[0]) {
+				modeI = ++modeI % 3;
+				pipeline.setRenderState(Pipeline::RenderState(states[modeI]));
+			}
+			kbhit[0] = true;
+		} else kbhit[0] = false;
+		if (window.is_key(VK_SPACE)) {
+			if (!kbhit[1]) {
+				sceneI = ++sceneI % sceneNum;
+				createScene(scene, sceneI);
+			}
+			kbhit[1] = true;
+		} else kbhit[1] = false;
 		Sleep(1);
 	}
 }

@@ -8,7 +8,7 @@
 class Scene {
 	friend class Pipeline;
 private:
-	vector<shared_ptr<Line>> lines;
+	vector<Line> lines;
 	vector<shared_ptr<Mesh>> meshes;
 
 	vector<Matrix44> modelMatrixs;
@@ -29,7 +29,12 @@ public:
 	void scale(float x, float y, float z) { currentModel.scale(x, y, z); }
 	void rotate(float x, float y, float z, float theta) { currentModel.rotate(x, y, z, theta); }
 
-	void addLine(shared_ptr<Line> line) { lines.push_back(line); }
+	void clear() { 
+		lines.clear();
+		meshes.clear();
+		modelMatrixs.clear();
+	}
+	void addLine(Line line) { lines.push_back(line); }
 	void addMesh(shared_ptr<Mesh> mesh) {
 		meshes.push_back(mesh);
 		modelMatrixs.push_back(currentModel);
