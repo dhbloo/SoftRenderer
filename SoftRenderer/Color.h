@@ -177,7 +177,7 @@ public:
 		return *this;
 	}
 
-	RGBColor operator + (const RGBColor & c) const {
+	RGBAColor operator + (const RGBColor & c) const {
 		return rgb * alpha + c * (1 - alpha);
 	}
 

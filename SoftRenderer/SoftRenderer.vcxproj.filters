@@ -48,6 +48,12 @@
     <ClInclude Include="Scene.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="include\stb_image.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="include\stb_image_write.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -57,6 +63,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Window.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameBuffer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

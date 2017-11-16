@@ -75,6 +75,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -87,10 +88,12 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -114,6 +117,8 @@
     <ClInclude Include="Color.h" />
     <ClInclude Include="Define.h" />
     <ClInclude Include="FrameBuffer.h" />
+    <ClInclude Include="include\stb_image.h" />
+    <ClInclude Include="include\stb_image_write.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="Matrix44.h" />
     <ClInclude Include="Pipeline.h" />
@@ -123,6 +128,7 @@
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FrameBuffer.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Pipeline.cpp" />
     <ClCompile Include="Window.cpp" />

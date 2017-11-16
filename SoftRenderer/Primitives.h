@@ -6,14 +6,14 @@
 #include "Vector.h"
 #include "Color.h"
 
-struct Texture {
+struct TexCoord {
 	float u, v;
 };
 
 struct Vertex {
 	Vector3 point;
-	RGBAColor color;
-	Texture tex;
+	RGBColor color;
+	TexCoord tex;
 	Vector3 normal;
 };
 
@@ -25,29 +25,39 @@ struct Line {
 // Èý½ÇÍ¼Ôª
 struct Primitive {
 	UInt vectorIndex[3];
+	Vector3 extraNormal = Vector3();
 };
+
+typedef function<bool(RGBColor & out, const Vector4 & pos, const RGBColor & color, const Vector3 & normal, const TexCoord & tex)> ShadeFunc;
 
 // Èý½ÇMesh
 struct Mesh {
 	vector<Vertex> vertices;
-
 	vector<Primitive> primitives;
+	shared_ptr<IntBuffer> texture;
+	ShadeFunc shadeFunc;
 };
 
 struct TVertex {
 	Vector4 point;
-	RGBAColor color;
-	Texture tex;
+	RGBColor color;
+	TexCoord tex;
+	Vector3 normal;
 	float rhw;
 
 	TVertex() {}
-	TVertex(const Vertex & vertex) : point(vertex.point), color(vertex.color), tex(tex) {}
-	TVertex(Vector4 point, RGBAColor color, float u, float v, float rhw) : point(point), color(color),
-		tex(tex), rhw(rhw) {}
+	TVertex(const Vertex & vertex) : color(vertex.color), tex(vertex.tex) {}
+	TVertex(const Vector4 & point, const RGBColor & color, float u, float v, const Vector3 & normal, float rhw) :
+		point(point), color(color), normal(normal), rhw(rhw) {
+		tex.u = u; tex.v = v;
+	}
 
 	void init_rhw() {
 		rhw = 1.0f / point.w;
 		color *= rhw;
+		tex.u *= rhw;
+		tex.v *= rhw;
+		normal *= rhw;
 	}
 	TVertex operator+ (const TVertex & vertex) const {
 		return TVertex {
@@ -57,15 +67,11 @@ struct TVertex {
 				point.z + vertex.point.z,
 				point.w + vertex.point.w
 			),
-			RGBAColor(
-				color.rgb.r + vertex.color.rgb.r,
-				color.rgb.g + vertex.color.rgb.g,
-				color.rgb.b + vertex.color.rgb.b,
-				color.alpha + vertex.color.alpha
-				),
+			color + vertex.color,
 			tex.u + vertex.tex.u,
 			tex.v + vertex.tex.v,
-			rhw + vertex.rhw 
+			normal + vertex.normal,
+			rhw + vertex.rhw
 		};
 	}
 	TVertex & operator+= (const TVertex & vertex) {
@@ -73,12 +79,10 @@ struct TVertex {
 		point.y += vertex.point.y;
 		point.z += vertex.point.z;
 		point.w += vertex.point.w;
-		color.rgb.r += vertex.color.rgb.r;
-		color.rgb.g += vertex.color.rgb.g;
-		color.rgb.b += vertex.color.rgb.b;
-		color.alpha += vertex.color.alpha;
+		color += vertex.color;
 		tex.u += vertex.tex.u;
 		tex.v += vertex.tex.v;
+		normal += vertex.normal;
 		rhw += vertex.rhw;
 		return *this;
 	}
@@ -90,15 +94,11 @@ struct TVertex {
 				point.z - vertex.point.z,
 				point.w - vertex.point.w
 			),
-			RGBAColor(
-				color.rgb.r - vertex.color.rgb.r,
-				color.rgb.g - vertex.color.rgb.g,
-				color.rgb.b - vertex.color.rgb.b,
-				color.alpha - vertex.color.alpha
-			),
+			color - vertex.color,
 			tex.u - vertex.tex.u,
 			tex.v - vertex.tex.v,
-			rhw - vertex.rhw
+			normal - vertex.normal,
+			rhw - vertex.rhw,
 		};
 	}
 	TVertex & operator-= (const TVertex & vertex) {
@@ -106,30 +106,26 @@ struct TVertex {
 		point.y -= vertex.point.y;
 		point.z -= vertex.point.z;
 		point.w -= vertex.point.w;
-		color.rgb.r -= vertex.color.rgb.r;
-		color.rgb.g -= vertex.color.rgb.g;
-		color.rgb.b -= vertex.color.rgb.b;
-		color.alpha -= vertex.color.alpha;
+		color -= vertex.color;
 		tex.u -= vertex.tex.u;
 		tex.v -= vertex.tex.v;
+		normal -= vertex.normal;
 		rhw -= vertex.rhw;
 		return *this;
 	}
 	TVertex operator* (float k) const {
-		return TVertex { 
+		return TVertex{
 			Vector4(
 				point.x * k,
 				point.y * k,
 				point.z * k,
 				point.w * k
 			),
-			RGBAColor(
-				color.rgb * k,
-				color.alpha * k
-			),
+			color * k,
 			tex.u * k,
 			tex.v * k,
-			rhw * k 
+			normal * k,
+			rhw * k ,
 		};
 	}
 	TVertex & operator*= (float k) {
@@ -137,10 +133,10 @@ struct TVertex {
 		point.y *= k;
 		point.z *= k;
 		point.w *= k;
-		color.rgb *= k;
-		color.alpha *= k;
+		color *= k;
 		tex.u *= k;
 		tex.v *= k;
+		normal *= k;
 		rhw *= k;
 		return *this;
 	}

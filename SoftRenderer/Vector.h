@@ -17,10 +17,6 @@ public:
 	inline float operator [] (UInt8 i) const { return (&x)[i]; }
 	inline float & operator [] (UInt8 i) { return (&x)[i]; }
 
-	inline void operator=(const Vector3 & v) {
-		x = v.x, y = v.y, z = v.z;
-	}
-
 	inline Vector3 operator-() const {
 		return Vector3(-x, -y, -z);
 	}
@@ -167,24 +163,21 @@ public:
 	inline float operator [] (UInt8 i) const { return (&x)[i]; }
 	inline float & operator [] (UInt8 i) { return (&x)[i]; }
 
-	inline void operator=(const Vector4 & v) {
-		x = v.x, y = v.y, z = v.z;
-	}
-
 	inline Vector4 operator-() const {
 		return Vector4(-x, -y, -z);
 	}
 
 	inline bool operator==(const Vector4 & v) const {
-		return x == v.x && y == v.y && z == v.z;
+		return x == v.x && y == v.y && z == v.z && w == v.w;
 	}
 
 	inline bool operator!=(const Vector4 & v) const {
-		return x != v.x || y != v.y || z != v.z;
+		return x != v.x || y != v.y || z != v.z || w != v.w;
 	}
 
 	inline bool isZero() const {
-		return MathUtils::isZero(x) && MathUtils::isZero(y) && MathUtils::isZero(z);
+		float oneOverW = 1.0f / w;
+		return MathUtils::isZero(x * oneOverW) && MathUtils::isZero(y * oneOverW) && MathUtils::isZero(z * oneOverW);
 	}
 
 	inline Vector4 operator+(const Vector4 & v) const {

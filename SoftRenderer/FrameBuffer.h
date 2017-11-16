@@ -44,16 +44,17 @@ public:
 
 	// x, y ÔÚ[0, 1)·¶Î§ÄÚ
 	T get(float x, float y) const {
-		return get(int(MathUtils::clamp(x) * width), int(MathUtils::clamp(y) * height));
+		return get((int)(x * width) % width, (int)(y * height) % height);
 	}
 	void get(T & ref, float x, float y) const {
-		get(ref, int(MathUtils::clamp(x) * width), int(MathUtils::clamp(y) * height));
+		get(ref, (int)(x * width) % width, (int)(y * height) % height);
 	}
 };
 
 typedef FrameBuffer<RGBColor> ColorBuffer;
-typedef FrameBuffer<RGBAColor> RGBAColorBuffer;
 typedef FrameBuffer<float> FloatBuffer;
 typedef FrameBuffer<int> IntBuffer;
+
+shared_ptr<IntBuffer> CreateTexture(const char * filename);
 
 #endif

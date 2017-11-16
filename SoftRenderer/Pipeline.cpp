@@ -1,26 +1,29 @@
 #include "Pipeline.h"
 
-void Pipeline::drawPixel(int x, int y, RGBAColor color) {
+void Pipeline::drawPixel(int x, int y, const RGBColor & color) {
 	if (x >= 0 && x < renderBuffer.getWidth() && y >= 0 && y < renderBuffer.getHeight())
-		renderBuffer.set(x, y, (color + RGBColor().setRGBInt(renderBuffer.get(x, y))).toRGBInt());
+		renderBuffer.set(x, y, color.toRGBInt());
 }
 
-void Pipeline::rasterizeLine(int x0, int y0, int x1, int y1, RGBAColor c0, RGBAColor c1) {
-	int x, y, rem = 0;
+void Pipeline::rasterizeLine(int x0, int y0, int x1, int y1, RGBColor c0, RGBColor c1) {
 	if (x0 == x1 && y0 == y1) {
 		drawPixel(x0, y0, (c0 + c1) * 0.5f);
 	} else if (x0 == x1) {
-		if (y1 < y0) swap(y0, y1);
-		for (y = y0; y <= y1; y++) drawPixel(x0, y, c0);
+		if (y1 < y0) swap(y0, y1), swap(c0, c1);
+		RGBColor ci = (c1 - c0) / (float)(y1 - y0);
+		for (int y = y0; y <= y1; y++, c0 += ci) drawPixel(x0, y, c0);
 	} else if (y0 == y1) {
-		if (x1 < x0) swap(x0, x1);
-		for (x = x0; x <= x1; x++) drawPixel(x, y0, c0);
+		if (x1 < x0) swap(x0, x1), swap(c0, c1);
+		RGBColor ci = (c1 - c0) / (float)(x1 - x0);
+		for (int x = x0; x <= x1; x++, c0 += ci) drawPixel(x, y0, c0);
 	} else {
+		int rem = 0;
 		int dx = (x0 < x1) ? x1 - x0 : x0 - x1;
 		int dy = (y0 < y1) ? y1 - y0 : y0 - y1;
 		if (dx >= dy) {
-			if (x1 < x0) x = x0, y = y0, x0 = x1, y0 = y1, x1 = x, y1 = y;
-			for (x = x0, y = y0; x <= x1; x++) {
+			if (x1 < x0) swap(x0, x1), swap(y0, y1), swap(c0, c1);
+			RGBColor ci = (c1 - c0) / (float)(x1 - x0);
+			for (int x = x0, y = y0; x <= x1; x++, c0 += ci) {
 				drawPixel(x, y, c0);
 				rem += dy;
 				if (rem >= dx) {
@@ -31,8 +34,9 @@ void Pipeline::rasterizeLine(int x0, int y0, int x1, int y1, RGBAColor c0, RGBAC
 			}
 			drawPixel(x1, y1, c0);
 		} else {
-			if (y1 < y0) x = x0, y = y0, x0 = x1, y0 = y1, x1 = x, y1 = y;
-			for (x = x0, y = y0; y <= y1; y++) {
+			if (y1 < y0) swap(x0, x1), swap(y0, y1), swap(c0, c1);
+			RGBColor ci = (c1 - c0) / (float)(y1 - y0);
+			for (int x = x0, y = y0; y <= y1; y++, c0 += ci) {
 				drawPixel(x, y, c0);
 				rem += dx;
 				if (rem >= dy) {
@@ -50,14 +54,27 @@ void Pipeline::rasterizeScanline(Scanline & scanline) {
 	int * fbPtr = renderBuffer(0, scanline.y);
 	float * zbPtr = ZBuffer(0, scanline.y);
 	int x0 = MAX(scanline.x0, 0), x1 = MIN(scanline.x1, renderBuffer.getWidth() - 1);
-	TVertex vi = scanline.v0;
+	TVertex vi = scanline.v0, v;
+	RGBColor c;
+	int rs = currentTexture ? renderState : renderState & (~Texture);
+	rs = currentShadeFunc ? rs : rs & (~Shading);
 	for (int x = x0; x <= x1; x++) {
 		float rhw = vi.rhw;
 		if (rhw >= zbPtr[x]) {  // 使用Z-buffer判断深度是否满足
 			zbPtr[x] = rhw;
-			TVertex v = vi * (1.0f / rhw);
-			if (renderState & Color) {
-				fbPtr[x] = v.color.rgb.toRGBInt();
+			v = vi * (1.0f / rhw);
+			if (rs & Shading) {
+				if (currentShadeFunc(c, v.point, v.color, v.normal.NormalizedVector(), v.tex))
+					fbPtr[x] = c.toRGBInt();
+			} else {
+				if (rs & Color) {
+					c = v.color;
+				}
+				if (rs & Texture) {
+					c.setRGBInt(currentTexture->get(v.tex.u, v.tex.v));
+					if (rs & Color) c *= v.color;
+				}
+				fbPtr[x] = c.toRGBInt();
 			}
 		}
 		vi += scanline.step;
@@ -117,6 +134,7 @@ void Pipeline::triangleSpilt(SplitedTriangle & st, const TVertex * v0, const TVe
 void Pipeline::rasterizeTriangle(const SplitedTriangle & st) {
 	if (st.type & SplitedTriangle::FLAT_TOP) {
 		int y0 = (int)st.bottom.point.y + 1, y1 = (int)st.left.point.y;
+	#pragma omp parallel for schedule(dynamic)
 		for (int y = y0; y <= y1; y++) {
 			float factor = (y - st.bottom.point.y) / (st.left.point.y - st.bottom.point.y);
 			TVertex left = MathUtils::lerp(st.bottom, st.left, factor);
@@ -132,6 +150,7 @@ void Pipeline::rasterizeTriangle(const SplitedTriangle & st) {
 	}
 	if (st.type & SplitedTriangle::FLAT_BOTTOM) {
 		int y0 = (int)st.left.point.y + 1, y1 = (int)st.top.point.y;
+	#pragma omp parallel for schedule(dynamic)
 		for (int y = y0; y <= y1; y++) {
 			float factor = (y - st.left.point.y) / (st.top.point.y - st.left.point.y);
 			TVertex left = MathUtils::lerp(st.left, st.top, factor);
@@ -168,6 +187,8 @@ void Pipeline::transformHomogenize(const Vector4 & src, Vector3 & dst) {
 
 void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transform) {
 	vector<Vertex> & v = mesh->vertices;
+	currentTexture = mesh->texture;
+	currentShadeFunc = mesh->shadeFunc;
 
 	Vertex * vo[3];
 	Vector4 c0, c1, c2;
@@ -191,7 +212,7 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 		transformHomogenize(c1, p1);
 		transformHomogenize(c2, p2);
 
-		if ((renderState & (Color | Texture)) && (!(cvv[0] || cvv[1] || cvv[2]))) {
+		if ((renderState & (~Wireframe)) && (!(cvv[0] || cvv[1] || cvv[2]))) {
 			TVertex v0(*vo[0]), v1(*vo[1]), v2(*vo[2]);
 			SplitedTriangle st;
 			v0.point = p0;
@@ -200,6 +221,13 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 			v0.point.w = c0.w;
 			v1.point.w = c1.w;
 			v2.point.w = c2.w;
+
+			if (p.extraNormal.isZero()) {
+				v0.normal = vo[0]->normal;
+				v1.normal = vo[1]->normal;
+				v2.normal = vo[2]->normal;
+			} else
+				v0.normal = v1.normal = v2.normal = p.extraNormal;
 
 			v0.init_rhw();
 			v1.init_rhw();

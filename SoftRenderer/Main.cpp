@@ -7,6 +7,12 @@ static int sceneNum = 3;
 static float aspect;
 static float translateZ = 1.5f;
 static float rotateX = 0, rotateY = 0;
+static shared_ptr<IntBuffer> texture;
+
+bool phong(RGBColor & out, const Vector4 & pos, const RGBColor & color, const Vector3 & normal, const TexCoord & tex) {
+	out = Colors::White * MathUtils::clamp(normal * Vector3(1, 1, 0));
+	return true;
+}
 
 void createScene(Scene & scene, int index) {
 	scene.clear();
@@ -23,27 +29,29 @@ void createScene(Scene & scene, int index) {
 		break;
 	case 1:
 		m->vertices = {
-			{ Vector3(-0.5f, -0.5f,  0.5f), Colors::Red },
-			{ Vector3(0.5f, -0.5f,  0.5f), Colors::Green },
-			{ Vector3(0.5f,  0.5f,  0.5f), Colors::Blue },
-			{ Vector3(-0.5f,  0.5f,  0.5f), Colors::White },
-			{ Vector3(-0.5f, -0.5f, -0.5f), Colors::Blue },
-			{ Vector3(-0.5f,  0.5f, -0.5f), Colors::Red },
-			{ Vector3(0.5f,  0.5f, -0.5f), Colors::Green },
-			{ Vector3(0.5f, -0.5f, -0.5f), Colors::White }
+			{ Vector3(-0.5f, -0.5f,  0.5f), Colors::Red, TexCoord {0, 0} },
+			{ Vector3(0.5f, -0.5f,  0.5f), Colors::Green, TexCoord{ 1, 0 } },
+			{ Vector3(0.5f,  0.5f,  0.5f), Colors::Blue, TexCoord{ 1, 1 } },
+			{ Vector3(-0.5f,  0.5f,  0.5f), Colors::White, TexCoord{ 0, 1 } },
+			{ Vector3(-0.5f, -0.5f, -0.5f), Colors::Blue, TexCoord{ 1, 0 } },
+			{ Vector3(-0.5f,  0.5f, -0.5f), Colors::Red, TexCoord{ 1, 1 } },
+			{ Vector3(0.5f,  0.5f, -0.5f), Colors::Green, TexCoord{ 0, 1 } },
+			{ Vector3(0.5f, -0.5f, -0.5f), Colors::White, TexCoord{ 0, 0 } }
 		};
 		m->primitives = {
-			Primitive{ 0,1,2 }, Primitive{ 0,2,3 },
-			Primitive{ 4,5,6 }, Primitive{ 4,6,7 },
-			Primitive{ 5,3,2 }, Primitive{ 5,2,6 },
-			Primitive{ 4,7,1 }, Primitive{ 4,1,0 },
-			Primitive{ 7,6,2 }, Primitive{ 7,2,1 },
-			Primitive{ 4,0,3 }, Primitive{ 4,3,5 },
+			Primitive{ 0,1,2, Vector3(0,0,1) }, Primitive{ 0,2,3, Vector3(0,0,1) },
+			Primitive{ 4,5,6, Vector3(0,0,-1) }, Primitive{ 4,6,7, Vector3(0,0,-1) },
+			Primitive{ 5,3,2, Vector3(0,1,0) }, Primitive{ 5,2,6, Vector3(0,1,0) },
+			Primitive{ 4,7,1, Vector3(0,-1,0) }, Primitive{ 4,1,0, Vector3(0,-1,0) },
+			Primitive{ 7,6,2, Vector3(1,0,0) }, Primitive{ 7,2,1, Vector3(1,0,0) },
+			Primitive{ 4,0,3, Vector3(-1,0,0) }, Primitive{ 4,3,5, Vector3(-1,0,0) },
 		};
+		m->texture = texture;
+		m->shadeFunc = ShadeFunc(phong);
 		scene.addMesh(m);
 		break;
 	case 2:
-		for (int i = 0; i < 360; i += 5) {
+		for (float i = 0; i < 360; i += 5) {
 			scene.addLine(Line{
 			    Vertex { Vector3(0,0,0), Colors::White },
 			    Vertex { Vector3(0.7f * cos(i),0.7f * sin(i),1), Colors::Random() }
@@ -63,9 +71,14 @@ int main() {
 	Window window(image.getWidth(), image.getHeight(), _T("SoftRenderer"));
 	aspect = image.aspect();
 
-	Pipeline::RenderState states[3] = { Pipeline::Wireframe, Pipeline::Color, Pipeline::Texture };
+	Pipeline::RenderState states[] = { Pipeline::Wireframe, Pipeline::Color, Pipeline::Texture,
+		Pipeline::ColoredTexture, Pipeline::Shading
+	};
 	bool kbhit[2] = { false };
 	int sceneI = 0, modeI = 0;
+
+	texture = CreateTexture("C:\\Users\\dhb\\Pictures\\pika.jpg");
+
 	createScene(scene, sceneI);
 	
 	while (window.is_run()) {
@@ -90,7 +103,7 @@ int main() {
 
 		if (window.is_key(VK_CONTROL)) {
 			if (!kbhit[0]) {
-				modeI = ++modeI % 3;
+				modeI = ++modeI % 5;
 				pipeline.setRenderState(Pipeline::RenderState(states[modeI]));
 			}
 			kbhit[0] = true;
