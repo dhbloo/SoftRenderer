@@ -66,7 +66,7 @@ void Pipeline::rasterizeScanline(Scanline & scanline) {
 			v = vi * (1.0f / rhw);
 			if (rs & Shading) {
 				pos = vi.point, pos.x *= invW, pos.y *= invH;
-				if (currentShadeFunc(c, pos, v.color, v.normal.NormalizedVector(), v.tex)) {
+				if (currentShadeFunc(c, pos, v.color, v.normal.NormalizedVector(), currentTexture, v.tex)) {
 					fbPtr[x] = c.toRGBInt();
 					zbPtr[x] = rhw;
 				}

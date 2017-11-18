@@ -11,8 +11,8 @@ const ShadeFunc shaders[] = {
 	FragmentShader::depth(1.5f, 0),
 	FragmentShader::normal(),
 	FragmentShader::lambert_direction_light(Vector3(.5f, .5f, -1)),
-	FragmentShader::phong(Vector3(1, 1, -1), Colors::Black, Colors::White * .25f, Colors::White * .75f, 10.f),
-	FragmentShader::blinn_phong(Vector3(1, 1, -1), Colors::Black, Colors::White * .25f, Colors::White * .75f, 10.f)
+	FragmentShader::phong_direction_light(Vector3(1, 1, -1), Colors::Black, Colors::White * .25f, Colors::White * .75f, 10.f),
+	FragmentShader::blinn_phong_direction_light(Vector3(1, 1, -1), Colors::Black, Colors::White * .25f, Colors::White * .75f, 10.f)
 };
 const int shaderNum = 5;
 const int sceneNum = 3;

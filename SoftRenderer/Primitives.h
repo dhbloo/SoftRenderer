@@ -29,7 +29,7 @@ struct Primitive {
 	Vector3 extraNormal = Vector3();
 };
 
-typedef function<bool(RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal, const TexCoord & tex)> ShadeFunc;
+typedef function<bool(RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal, const shared_ptr<IntBuffer> & texture, const TexCoord & tex)> ShadeFunc;
 
 // Èý½ÇMesh
 struct Mesh {
