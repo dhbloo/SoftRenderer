@@ -138,6 +138,10 @@ public:
 	friend std::ostream& operator << (std::ostream &s, const RGBColor &c) {
 		return s << "color(" << c.r << "," << c.g << "," << c.b << ")";
 	}
+
+	inline friend RGBColor operator*(float k, const RGBColor & c) {
+		return RGBColor(k * c.r, k * c.g, k * c.b);
+	}
 };
 
 inline RGBColor ColorByte(UInt8 r, UInt8 g, UInt8 b) {

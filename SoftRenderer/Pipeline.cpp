@@ -58,23 +58,27 @@ void Pipeline::rasterizeScanline(Scanline & scanline) {
 	RGBColor c;
 	int rs = currentTexture ? renderState : renderState & (~Texture);
 	rs = currentShadeFunc ? rs : rs & (~Shading);
+	float invW = 1.f / renderBuffer.getWidth(), invH = 1.f / renderBuffer.getHeight();
+	Vector3 pos;
 	for (int x = x0; x <= x1; x++) {
 		float rhw = vi.rhw;
 		if (rhw >= zbPtr[x]) {  // 使用Z-buffer判断深度是否满足
-			zbPtr[x] = rhw;
 			v = vi * (1.0f / rhw);
 			if (rs & Shading) {
-				if (currentShadeFunc(c, v.point, v.color, v.normal.NormalizedVector(), v.tex))
+				pos = vi.point, pos.x *= invW, pos.y *= invH;
+				if (currentShadeFunc(c, pos, v.color, v.normal.NormalizedVector(), v.tex)) {
 					fbPtr[x] = c.toRGBInt();
-			} else {
-				if (rs & Color) {
-					c = v.color;
+					zbPtr[x] = rhw;
 				}
+			} else {
 				if (rs & Texture) {
 					c.setRGBInt(currentTexture->get(v.tex.u, v.tex.v));
 					if (rs & Color) c *= v.color;
+				} else if (rs & Color) {
+					c = v.color;
 				}
 				fbPtr[x] = c.toRGBInt();
+				zbPtr[x] = rhw;
 			}
 		}
 		vi += scanline.step;
@@ -185,7 +189,7 @@ void Pipeline::transformHomogenize(const Vector4 & src, Vector3 & dst) {
 	dst.z = src.z * rhw;
 }
 
-void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transform) {
+void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transform, const Matrix44 & normalMatrix) {
 	vector<Vertex> & v = mesh->vertices;
 	currentTexture = mesh->texture;
 	currentShadeFunc = mesh->shadeFunc;
@@ -218,20 +222,19 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 			v0.point = p0;
 			v1.point = p1;
 			v2.point = p2;
-			v0.point.w = c0.w;
-			v1.point.w = c1.w;
-			v2.point.w = c2.w;
 
 			if (p.extraNormal.isZero()) {
-				v0.normal = vo[0]->normal;
-				v1.normal = vo[1]->normal;
-				v2.normal = vo[2]->normal;
-			} else
-				v0.normal = v1.normal = v2.normal = p.extraNormal;
+				normalMatrix.applyDir(vo[0]->normal, v0.normal);
+				normalMatrix.applyDir(vo[1]->normal, v1.normal);
+				normalMatrix.applyDir(vo[2]->normal, v2.normal);
+			} else {
+				normalMatrix.applyDir(p.extraNormal, v0.normal);
+				v1.normal = v2.normal = v0.normal;
+			}
 
-			v0.init_rhw();
-			v1.init_rhw();
-			v2.init_rhw();
+			v0.init_rhw(c0.w);
+			v1.init_rhw(c1.w);
+			v2.init_rhw(c2.w);
 
 			triangleSpilt(st, &v0, &v1, &v2);
 			rasterizeTriangle(st);
@@ -266,7 +269,7 @@ void Pipeline::render(const Scene & scene) {
 	Matrix44 projectionViewTransform = scene.view * scene.projection;
 
 	for (size_t i = 0; i < scene.meshes.size(); i++) {
-		renderMesh(scene.meshes[i], scene.modelMatrixs[i] * projectionViewTransform);
+		renderMesh(scene.meshes[i], scene.modelMatrixs[i] * projectionViewTransform, scene.modelMatrixs[i] * scene.view);
 	}
 
 	for each (auto line in scene.lines) {

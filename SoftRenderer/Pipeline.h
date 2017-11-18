@@ -37,7 +37,7 @@ private:
 	// 归一化，得到屏幕坐标
 	void transformHomogenize(const Vector4 & src, Vector3 & dst);
 
-	void renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transform);
+	void renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transform, const Matrix44 & normalMatrix);
 	void renderLine(const Line & line, const Matrix44 & transform);
 
 public:

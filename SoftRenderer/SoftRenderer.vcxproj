@@ -76,6 +76,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <OpenMPSupport>true</OpenMPSupport>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -94,6 +95,7 @@
       <SDLCheck>true</SDLCheck>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OpenMPSupport>true</OpenMPSupport>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -124,6 +126,7 @@
     <ClInclude Include="Pipeline.h" />
     <ClInclude Include="Primitives.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="ShaderPrefab.h" />
     <ClInclude Include="Vector.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
@@ -131,6 +134,7 @@
     <ClCompile Include="FrameBuffer.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Pipeline.cpp" />
+    <ClCompile Include="ShaderPrefab.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

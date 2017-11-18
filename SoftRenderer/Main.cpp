@@ -1,30 +1,41 @@
 #include "Window.h"
 #include "Pipeline.h"
+#include "ShaderPrefab.h"
 
 using namespace std;
 
-static int sceneNum = 3;
+const Pipeline::RenderState states[] = { Pipeline::Wireframe, Pipeline::Color, Pipeline::Texture,
+Pipeline::ColoredTexture, Pipeline::Shading
+};
+const ShadeFunc shaders[] = {
+	FragmentShader::depth(1.5f, 0),
+	FragmentShader::normal(),
+	FragmentShader::lambert_direction_light(Vector3(.5f, .5f, -1)),
+	FragmentShader::phong(Vector3(1, 1, -1), Colors::Black, Colors::White * .25f, Colors::White * .75f, 10.f),
+	FragmentShader::blinn_phong(Vector3(1, 1, -1), Colors::Black, Colors::White * .25f, Colors::White * .75f, 10.f)
+};
+const int shaderNum = 5;
+const int sceneNum = 3;
+
 static float aspect;
 static float translateZ = 1.5f;
 static float rotateX = 0, rotateY = 0;
 static shared_ptr<IntBuffer> texture;
-
-bool phong(RGBColor & out, const Vector4 & pos, const RGBColor & color, const Vector3 & normal, const TexCoord & tex) {
-	out = Colors::White * MathUtils::clamp(normal * Vector3(1, 1, 0));
-	return true;
-}
+static ShadeFunc currentShader;
 
 void createScene(Scene & scene, int index) {
 	scene.clear();
 	shared_ptr<Mesh> m = make_shared<Mesh>();
+	m->texture = texture;
+	m->shadeFunc = currentShader;
 	switch (index) {
 	case 0:
 		m->vertices = { 
-			{ Vector3(0,0,0), Colors::Red },
-			{ Vector3(1,0,0), Colors::Blue },
-			{ Vector3(0,1,0), Colors::Green },
+			{ Vector3(0,0,0), Colors::Red, TexCoord{ 0, 0 } },
+			{ Vector3(1,0,0), Colors::Blue, TexCoord{ 1, 0 } },
+			{ Vector3(0,1,0), Colors::Green, TexCoord{ 0, 1 } },
 		};
-		m->primitives = { Primitive{ 0,1,2 } };
+		m->primitives = { Primitive{ 0,1,2, Vector3(0,0,1) } };
 		scene.addMesh(m, Matrix44().translate(-.5f, -.5f, 0));
 		break;
 	case 1:
@@ -46,8 +57,6 @@ void createScene(Scene & scene, int index) {
 			Primitive{ 7,6,2, Vector3(1,0,0) }, Primitive{ 7,2,1, Vector3(1,0,0) },
 			Primitive{ 4,0,3, Vector3(-1,0,0) }, Primitive{ 4,3,5, Vector3(-1,0,0) },
 		};
-		m->texture = texture;
-		m->shadeFunc = ShadeFunc(phong);
 		scene.addMesh(m);
 		break;
 	case 2:
@@ -71,13 +80,10 @@ int main() {
 	Window window(image.getWidth(), image.getHeight(), _T("SoftRenderer"));
 	aspect = image.aspect();
 
-	Pipeline::RenderState states[] = { Pipeline::Wireframe, Pipeline::Color, Pipeline::Texture,
-		Pipeline::ColoredTexture, Pipeline::Shading
-	};
-	bool kbhit[2] = { false };
-	int sceneI = 0, modeI = 0;
-
+	bool kbhit[3] = { false };
+	int sceneI = 0, modeI = 0, shaderI = 0;
 	texture = CreateTexture("C:\\Users\\dhb\\Pictures\\pika.jpg");
+	currentShader = shaders[shaderI];
 
 	createScene(scene, sceneI);
 	
@@ -91,7 +97,7 @@ int main() {
 		memcpy(window(), image(), image.getSize() * sizeof(int));
 		window.update();
 		ostringstream s;
-		s << "SoftRenderer Fps:" << window.get_fps();
+		s << "SoftRenderer(Space switch scene, Ctrl switch mode, Shift switch shader) Fps:" << window.get_fps();
 		window.setTitle(_T(s.str().c_str()));
 		if (window.is_key(VK_ESCAPE)) window.destory();
 		if (window.is_key(VK_LEFT)) rotateY -= 2.5f;
@@ -115,6 +121,14 @@ int main() {
 			}
 			kbhit[1] = true;
 		} else kbhit[1] = false;
+		if (window.is_key(VK_SHIFT)) {
+			if (!kbhit[2]) {
+				shaderI = ++shaderI % shaderNum;
+				currentShader = shaders[shaderI];
+				createScene(scene, sceneI);
+			}
+			kbhit[2] = true;
+		} else kbhit[2] = false;
 		Sleep(1);
 	}
 }

@@ -5,6 +5,7 @@
 
 #include "Vector.h"
 #include "Color.h"
+#include "FrameBuffer.h"
 
 struct TexCoord {
 	float u, v;
@@ -28,7 +29,7 @@ struct Primitive {
 	Vector3 extraNormal = Vector3();
 };
 
-typedef function<bool(RGBColor & out, const Vector4 & pos, const RGBColor & color, const Vector3 & normal, const TexCoord & tex)> ShadeFunc;
+typedef function<bool(RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal, const TexCoord & tex)> ShadeFunc;
 
 // Èý½ÇMesh
 struct Mesh {
@@ -39,7 +40,7 @@ struct Mesh {
 };
 
 struct TVertex {
-	Vector4 point;
+	Vector3 point;
 	RGBColor color;
 	TexCoord tex;
 	Vector3 normal;
@@ -47,13 +48,13 @@ struct TVertex {
 
 	TVertex() {}
 	TVertex(const Vertex & vertex) : color(vertex.color), tex(vertex.tex) {}
-	TVertex(const Vector4 & point, const RGBColor & color, float u, float v, const Vector3 & normal, float rhw) :
+	TVertex(const Vector3 & point, const RGBColor & color, float u, float v, const Vector3 & normal, float rhw) :
 		point(point), color(color), normal(normal), rhw(rhw) {
 		tex.u = u; tex.v = v;
 	}
 
-	void init_rhw() {
-		rhw = 1.0f / point.w;
+	void init_rhw(float w) {
+		rhw = 1.0f / w;
 		color *= rhw;
 		tex.u *= rhw;
 		tex.v *= rhw;
@@ -61,11 +62,10 @@ struct TVertex {
 	}
 	TVertex operator+ (const TVertex & vertex) const {
 		return TVertex {
-			Vector4(
+			Vector3(
 				point.x + vertex.point.x,
 				point.y + vertex.point.y,
-				point.z + vertex.point.z,
-				point.w + vertex.point.w
+				point.z + vertex.point.z
 			),
 			color + vertex.color,
 			tex.u + vertex.tex.u,
@@ -78,7 +78,6 @@ struct TVertex {
 		point.x += vertex.point.x;
 		point.y += vertex.point.y;
 		point.z += vertex.point.z;
-		point.w += vertex.point.w;
 		color += vertex.color;
 		tex.u += vertex.tex.u;
 		tex.v += vertex.tex.v;
@@ -88,11 +87,10 @@ struct TVertex {
 	}
 	TVertex operator- (const TVertex & vertex) const {
 		return TVertex{
-			Vector4(
+			Vector3(
 				point.x - vertex.point.x,
 				point.y - vertex.point.y,
-				point.z - vertex.point.z,
-				point.w - vertex.point.w
+				point.z - vertex.point.z
 			),
 			color - vertex.color,
 			tex.u - vertex.tex.u,
@@ -105,7 +103,6 @@ struct TVertex {
 		point.x -= vertex.point.x;
 		point.y -= vertex.point.y;
 		point.z -= vertex.point.z;
-		point.w -= vertex.point.w;
 		color -= vertex.color;
 		tex.u -= vertex.tex.u;
 		tex.v -= vertex.tex.v;
@@ -115,11 +112,10 @@ struct TVertex {
 	}
 	TVertex operator* (float k) const {
 		return TVertex{
-			Vector4(
+			Vector3(
 				point.x * k,
 				point.y * k,
-				point.z * k,
-				point.w * k
+				point.z * k
 			),
 			color * k,
 			tex.u * k,
@@ -132,7 +128,6 @@ struct TVertex {
 		point.x *= k;
 		point.y *= k;
 		point.z *= k;
-		point.w *= k;
 		color *= k;
 		tex.u *= k;
 		tex.v *= k;
