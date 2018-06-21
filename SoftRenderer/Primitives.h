@@ -26,7 +26,7 @@ struct Line {
 // Èý½ÇÍ¼Ôª
 struct Primitive {
 	UInt vectorIndex[3];
-	Vector3 extraNormal = Vector3();
+	Vector3 extraNormal = Vector3::Zero();
 };
 
 typedef function<bool(RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal, const shared_ptr<IntBuffer> & texture, const TexCoord & tex)> ShadeFunc;

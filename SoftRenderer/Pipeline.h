@@ -8,12 +8,15 @@
 #include "Primitives.h"
 #include "Scene.h"
 
+#include <omp.h>
+
 class Pipeline {
 public:
 	enum RenderState { Wireframe = 1, Color = 2, Texture = 4, ColoredTexture = 6, Shading = 8 };
 private:
 	IntBuffer & renderBuffer;
 	FloatBuffer ZBuffer;
+	omp_lock_t * locks;
 
 	RGBColor clearColor;
 	RenderState renderState;
@@ -43,8 +46,16 @@ private:
 public:
 	Pipeline(IntBuffer & renderBuffer) : renderBuffer(renderBuffer),
 		ZBuffer(renderBuffer.getWidth(), renderBuffer.getHeight()),
-		renderState(Wireframe) {}
-	~Pipeline() {}
+		renderState(Wireframe) {
+		locks = new omp_lock_t[renderBuffer.getHeight()];
+		for (int i = 0; i < renderBuffer.getHeight(); i++)
+			omp_init_lock(locks + i);
+	}
+	~Pipeline() {
+		for (int i = 0; i < renderBuffer.getHeight(); i++)
+			omp_destroy_lock(locks + i);
+		delete[] locks;
+	}
 
 	void setRenderState(RenderState state) { this->renderState = state; }
 	void setClearColor(RGBColor clearColor) { this->clearColor = clearColor; }

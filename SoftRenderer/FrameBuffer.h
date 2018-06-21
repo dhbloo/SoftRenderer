@@ -26,9 +26,9 @@ public:
 	inline float aspect() const { return (float)getWidth() / getHeight(); }
 
 	void set(int x, int y, const T & data) { buffer[y * width + x] = data; }
-	void set(UInt index) { assert(index < size); buffer[index] = data; }
+	void set(UInt index, const T & data) { assert(index < size); buffer[index] = data; }
 	void add(int x, int y, const T & data) { buffer[y * width + x] += data; }
-	void add(UInt index) { assert(index < size); buffer[index] += data; }
+	void add(UInt index, const T & data) { assert(index < size); buffer[index] += data; }
 
 	void clear(int x, int y) { buffer[y * width + x] = T(); }
 	void fill(const T & data) { 
@@ -44,9 +44,13 @@ public:
 
 	// x, y ÔÚ[0, 1)·¶Î§ÄÚ
 	T get(float x, float y) const {
+		x = Math::fastFract(x);
+		y = Math::fastFract(y);
 		return get((int)(x * width) % width, (int)(y * height) % height);
 	}
 	void get(T & ref, float x, float y) const {
+		x = Math::fastFract(x);
+		y = Math::fastFract(y);
 		get(ref, (int)(x * width) % width, (int)(y * height) % height);
 	}
 };

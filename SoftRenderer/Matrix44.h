@@ -207,12 +207,12 @@ public:
 		dst.z /= w;
 	}
 
-	Vector3 apply(const Vector3 & src) {
+	Vector3 apply(const Vector3 & src) const {
 		Vector3 dst;
 		apply(src, dst);
 		return dst;
 	}
-	Vector4 apply(const Vector4 & src) {
+	Vector4 apply(const Vector4 & src) const {
 		Vector4 dst;
 		apply(src, dst);
 		return dst;
@@ -228,7 +228,7 @@ public:
 		dst.z = src[0] * x[0][2] + src[1] * x[1][2] + src[2] * x[2][2];
 	}
 
-	Vector3 applyDir(const Vector3 & src) {
+	Vector3 applyDir(const Vector3 & src) const {
 		Vector3 dst;
 		applyDir(src, dst);
 		return dst;
@@ -365,16 +365,17 @@ public:
 		return *this *= m;
 	}
 
+	// theta in degrees
 	Matrix44& rotate(float x, float y, float z, float theta) {
-		float qsin = sin(theta * MathUtils::DEGREE_TO_RADIUS * 0.5f);
-		float qcos = cos(theta * MathUtils::DEGREE_TO_RADIUS * 0.5f);
+		float qsin = sin(theta * Math::DEGREE_TO_RADIUS * 0.5f);
+		float qcos = cos(theta * Math::DEGREE_TO_RADIUS * 0.5f);
 		Vector3 vec(x, y, z);
 		vec.normalize();
-		float w = qcos;
-		Matrix44 m;
 		x = vec.x * qsin;
 		y = vec.y * qsin;
 		z = vec.z * qsin;
+		float w = qcos;
+		Matrix44 m;
 		m[0][0] = 1 - 2 * y * y - 2 * z * z;
 		m[1][0] = 2 * x * y - 2 * w * z;
 		m[2][0] = 2 * x * z + 2 * w * y;
@@ -391,7 +392,7 @@ public:
 	}
 
 	Matrix44& setPerspective(float fov, float aspect, float zNear, float zFar) {
-		float fax = 1.0f / tan(MathUtils::DEGREE_TO_RADIUS * fov * 0.5f);
+		float fax = 1.0f / tan(Math::DEGREE_TO_RADIUS * fov * 0.5f);
 		setZero();
 		x[0][0] = fax / aspect;
 		x[1][1] = fax;

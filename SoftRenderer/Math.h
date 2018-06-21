@@ -9,7 +9,7 @@ typedef unsigned char UInt8;
 typedef unsigned int UInt;
 typedef unsigned long ULong;
 
-namespace MathUtils {
+namespace Math {
 	const static float Infinity = std::numeric_limits<float>::infinity();
 
 	const static float PI = 3.14159265358979323846f;
@@ -194,8 +194,8 @@ namespace MathUtils {
 	}
 }
 
-#define MAX(a,b)  MathUtils::maxT(a, b)
-#define MIN(a,b)  MathUtils::minT(a, b)
+#define MAX(a,b)  Math::maxT(a, b)
+#define MIN(a,b)  Math::minT(a, b)
 
 #endif
 

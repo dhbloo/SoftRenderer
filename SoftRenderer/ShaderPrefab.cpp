@@ -19,7 +19,7 @@ ShadeFunc FragmentShader::normal() {
 ShadeFunc FragmentShader::lambert_direction_light(Vector3 lightDir, RGBColor lightColor) {
 	lightDir.normalize();
 	return [=](RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal, const shared_ptr<IntBuffer> & texture, const TexCoord & tex) -> bool {
-		out = lightColor * MathUtils::clamp(normal * lightDir);
+		out = lightColor * Math::clamp(normal * lightDir);
 		return true;
 	};
 }
@@ -55,7 +55,27 @@ ShadeFunc FragmentShader::blinn_phong_direction_light(Vector3 lightDir, RGBColor
 		halfVec.normalize();
 		float spec = pow(MAX(0, halfVec * normal), specularPower);
 
-		out = ambient + diffuse * RGBColor().setRGBInt(texture->get(tex.u, tex.v)) * diff + specular * spec;
+		out = ambient + diffuse * diff + specular * spec;
+		return true;
+	};
+}
+
+ShadeFunc FragmentShader::blinn_phong_direction_light_color_textured(Vector3 lightDir, RGBColor ambient, RGBColor diffuse, RGBColor specular, float specularPower) {
+	lightDir.normalize();
+	return [=](RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal, const shared_ptr<IntBuffer> & texture, const TexCoord & tex) -> bool {
+		Vector3 v(pos);
+		v.x = 1.0f - 2 * v.x;
+		v.y = 2 * v.y - 1.0f;
+		v.z = -v.z;
+		v.normalize();
+		float diff = normal * lightDir;
+		Vector3 halfVec = lightDir + v;
+		halfVec.normalize();
+		float spec = pow(MAX(0, halfVec * normal), specularPower);
+
+		out.setRGBInt(texture->get(tex.u, tex.v));
+		out *= color;
+		out *= ambient + diffuse * diff + specular * spec;
 		return true;
 	};
 }

@@ -28,11 +28,15 @@ public:
 	void translate(float x, float y, float z) { currentModel.translate(x, y, z); }
 	void scale(float x, float y, float z) { currentModel.scale(x, y, z); }
 	void rotate(float x, float y, float z, float theta) { currentModel.rotate(x, y, z, theta); }
+	const Matrix44 & modelMatrix() { return currentModel; }
 
 	void clear() { 
 		lines.clear();
 		meshes.clear();
 		modelMatrixs.clear();
+		currentModel.setIdentity();
+		view.setIdentity();
+		projection.setIdentity();
 	}
 	void addLine(Line line) { lines.push_back(line); }
 	void addMesh(shared_ptr<Mesh> mesh) {

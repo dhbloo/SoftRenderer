@@ -30,7 +30,7 @@ public:
 	}
 
 	inline bool isZero() const {
-		return MathUtils::isZero(x) && MathUtils::isZero(y) && MathUtils::isZero(z);
+		return Math::isZero(x) && Math::isZero(y) && Math::isZero(z);
 	}
 
 	inline Vector3 operator+(const Vector3 & v) const {
@@ -142,7 +142,7 @@ public:
 
 	// ’€…‰∫Ø ˝
 	inline friend Vector3 refract(const Vector3 &inDir, const Vector3 &normal, float ior) {
-		float cosI = MathUtils::clamp(inDir * normal, -1, 1);
+		float cosI = Math::clamp(inDir * normal, -1, 1);
 		Vector3 n = normal;
 		if (cosI < 0) { cosI = -cosI; ior = 1 / ior; } else { n = -n; }
 		float k = 1 - ior * ior * (1 - cosI * cosI);
@@ -177,7 +177,7 @@ public:
 
 	inline bool isZero() const {
 		float oneOverW = 1.0f / w;
-		return MathUtils::isZero(x * oneOverW) && MathUtils::isZero(y * oneOverW) && MathUtils::isZero(z * oneOverW);
+		return Math::isZero(x * oneOverW) && Math::isZero(y * oneOverW) && Math::isZero(z * oneOverW);
 	}
 
 	inline Vector4 operator+(const Vector4 & v) const {

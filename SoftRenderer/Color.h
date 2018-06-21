@@ -78,9 +78,9 @@ public:
 	}
 
 	inline RGBColor & clamp() {
-		r = MathUtils::clamp(r);
-		g = MathUtils::clamp(g);
-		b = MathUtils::clamp(b);
+		r = Math::clamp(r);
+		g = Math::clamp(g);
+		b = Math::clamp(b);
 		return *this;
 	}
 
@@ -110,9 +110,9 @@ public:
 		int ir = int(r * 255 + 0.5);
 		int ig = int(g * 255 + 0.5);
 		int ib = int(b * 255 + 0.5);
-		ir = MathUtils::clamp(ir, 0, 255);
-		ig = MathUtils::clamp(ig, 0, 255);
-		ib = MathUtils::clamp(ib, 0, 255);
+		ir = Math::clamp(ir, 0, 255);
+		ig = Math::clamp(ig, 0, 255);
+		ib = Math::clamp(ib, 0, 255);
 		return (ir << 16) | (ig << 8) | ib;
 	}
 
@@ -124,15 +124,15 @@ public:
 	}
 
 	inline void toByte(UInt8 & rb, UInt8 & gb, UInt8 & bb) const {
-		rb = UInt8(MathUtils::clamp(int(r * 255 + 0.5), 0, 255));
-		gb = UInt8(MathUtils::clamp(int(g * 255 + 0.5), 0, 255));
-		bb = UInt8(MathUtils::clamp(int(b * 255 + 0.5), 0, 255));
+		rb = UInt8(Math::clamp(int(r * 255 + 0.5), 0, 255));
+		gb = UInt8(Math::clamp(int(g * 255 + 0.5), 0, 255));
+		bb = UInt8(Math::clamp(int(b * 255 + 0.5), 0, 255));
 	}
 
 	inline void toByte(UInt8 * rb, UInt8 * gb, UInt8 * bb) const {
-		*rb = UInt8(MathUtils::clamp(r * 255 + 0.5, 0, 255));
-		*gb = UInt8(MathUtils::clamp(g * 255 + 0.5, 0, 255));
-		*bb = UInt8(MathUtils::clamp(b * 255 + 0.5, 0, 255));
+		*rb = UInt8(Math::clamp(r * 255 + 0.5, 0, 255));
+		*gb = UInt8(Math::clamp(g * 255 + 0.5, 0, 255));
+		*bb = UInt8(Math::clamp(b * 255 + 0.5, 0, 255));
 	}
 
 	friend std::ostream& operator << (std::ostream &s, const RGBColor &c) {
