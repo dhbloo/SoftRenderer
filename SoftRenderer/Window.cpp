@@ -5,15 +5,16 @@ std::unordered_map<HWND, Window *> Window::screen_refs = std::unordered_map<HWND
 
 LRESULT CALLBACK screen_events(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	auto result = Window::screen_refs.find(hWnd);
-	if (result == Window::screen_refs.end()) return DefWindowProc(hWnd, msg, wParam, lParam);
+	if (result == Window::screen_refs.end()) 
+		return DefWindowProc(hWnd, msg, wParam, lParam);
+
 	Window * window_ptr = result->second;
 	switch (msg) {
 	case WM_CLOSE: window_ptr->screen_running = false; break;
 	case WM_KEYDOWN: window_ptr->screen_keys[wParam & 511] = 1; break;
 	case WM_KEYUP: window_ptr->screen_keys[wParam & 511] = 0; break;
-	default: return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
-	return 0;
+	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 Window::Window(int w, int h, const TCHAR * title) {
@@ -116,8 +117,7 @@ bool Window::setTitle(const TCHAR * title) {
 	return SetWindowText(screen_handle, title);
 }
 
-void Window::update_fps() // ms
-{
+void Window::update_fps() { // ms
 	static int fps = 0;
 	static clock_t lastTime = clock(); // ms
 	static int frameCount = 0;

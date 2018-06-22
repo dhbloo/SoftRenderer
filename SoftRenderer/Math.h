@@ -5,10 +5,6 @@
 
 #include <cmath>
 
-typedef unsigned char UInt8;
-typedef unsigned int UInt;
-typedef unsigned long ULong;
-
 namespace Math {
 	const static float Infinity = std::numeric_limits<float>::infinity();
 
@@ -17,17 +13,17 @@ namespace Math {
 	const static float DEGREE_TO_RADIUS = PI / 180.f;
 	const static float RADIUS_TO_DEGREE = INV_PI * 180.f;
 
-	const static float E_VALUE = 2.71828182845904523536f;
+	const static float E_CONSTANT = 2.71828182845904523536f;
 
 	const static float EPS = 1e-6f;
 
 	template <class T1, class T2>
-	inline auto maxT(const T1 a, const T2 b) {
+	inline auto _max(const T1 a, const T2 b) {
 		return (a > b) ? a : b;
 	}
 
 	template <class T1, class T2>
-	inline auto minT(const T1 a, const T2 b) {
+	inline auto _min(const T1 a, const T2 b) {
 		return (a < b) ? a : b;
 	}
 
@@ -64,7 +60,7 @@ namespace Math {
 
 	template <class T>
 	inline bool isInRange(const T a, const T min, const T max) {
-		return (a >= min) && (a <= max);
+		return a >= min && a <= max;
 	}
 
 	template <class T>
@@ -194,8 +190,9 @@ namespace Math {
 	}
 }
 
-#define MAX(a,b)  Math::maxT(a, b)
-#define MIN(a,b)  Math::minT(a, b)
+// frequently used micro
+#define MAX(a,b)  Math::_max(a, b)
+#define MIN(a,b)  Math::_min(a, b)
 
 #endif
 

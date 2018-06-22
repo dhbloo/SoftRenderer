@@ -31,8 +31,8 @@ public:
 		x[3][3] = p;
 	}
 
-	const float* operator [] (UInt8 i) const { return x[i]; }
-	float* operator [] (UInt8 i) { return x[i]; }
+	const float* operator [] (uint8_t i) const { return x[i]; }
+	float* operator [] (uint8_t i) { return x[i]; }
 
 	// Multiply the current matrix with another matrix (rhs)
 	Matrix44 operator * (const Matrix44& v) const {
@@ -407,9 +407,9 @@ public:
 
 		zaxis = at - eye;
 		zaxis.normalize();
-		xaxis = crossProduct(up, zaxis);
+		xaxis = cross(up, zaxis);
 		xaxis.normalize();
-		yaxis = crossProduct(zaxis, xaxis);
+		yaxis = cross(zaxis, xaxis);
 
 		x[0][0] = xaxis.x;
 		x[1][0] = xaxis.y;

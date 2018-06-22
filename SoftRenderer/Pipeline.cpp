@@ -1,12 +1,23 @@
 #include "Pipeline.h"
 
-// 画像素点(会检查越界)
+Pipeline::Pipeline(IntBuffer & renderBuffer) : renderBuffer(renderBuffer), renderState(Wireframe),
+ZBuffer(renderBuffer.getWidth(), renderBuffer.getHeight()) {
+	locks = new omp_lock_t[renderBuffer.getHeight()];
+	for (int i = 0; i < renderBuffer.getHeight(); i++)
+		omp_init_lock(locks + i);
+}
+
+Pipeline::~Pipeline() {
+	for (int i = 0; i < renderBuffer.getHeight(); i++)
+		omp_destroy_lock(locks + i);
+	delete[] locks;
+}
+
 inline void Pipeline::drawPixel(int x, int y, const RGBColor & color) {
 	if (x >= 0 && x < renderBuffer.getWidth() && y >= 0 && y < renderBuffer.getHeight())
 		renderBuffer.set(x, y, color.toRGBInt());
 }
 
-// 光栅化直线
 void Pipeline::rasterizeLine(int x0, int y0, int x1, int y1, RGBColor c0, RGBColor c1) {
 	if (x0 == x1 && y0 == y1) {
 		drawPixel(x0, y0, (c0 + c1) * 0.5f);
@@ -52,7 +63,6 @@ void Pipeline::rasterizeLine(int x0, int y0, int x1, int y1, RGBColor c0, RGBCol
 	}
 }
 
-// 光栅化扫描线
 void Pipeline::rasterizeScanline(Scanline & scanline) {
 	int * fbPtr = renderBuffer(0, scanline.y);
 	float * zbPtr = ZBuffer(0, scanline.y);
@@ -90,11 +100,10 @@ void Pipeline::rasterizeScanline(Scanline & scanline) {
 	omp_unset_lock(locks + scanline.y);
 }
 
-// 光栅化三角形
 void Pipeline::rasterizeTriangle(const SplitedTriangle & st) {
 	if (st.type & SplitedTriangle::FLAT_TOP) {
 		int y0 = (int)st.bottom.point.y + 1, y1 = (int)st.left.point.y;
-	#pragma omp parallel for schedule(dynamic) 
+	#pragma omp parallel for schedule(static, 16) 
 		for (int y = y0; y <= y1; y++) {
 			float factor = (y - st.bottom.point.y) / (st.left.point.y - st.bottom.point.y);
 			TVertex left = Math::lerp(st.bottom, st.left, factor);
@@ -110,7 +119,7 @@ void Pipeline::rasterizeTriangle(const SplitedTriangle & st) {
 	}
 	if (st.type & SplitedTriangle::FLAT_BOTTOM) {
 		int y0 = (int)st.left.point.y + 1, y1 = (int)st.top.point.y;
-	#pragma omp parallel for schedule(dynamic) 
+	#pragma omp parallel for schedule(static, 16) 
 		for (int y = y0; y <= y1; y++) {
 			float factor = (y - st.left.point.y) / (st.top.point.y - st.left.point.y);
 			TVertex left = Math::lerp(st.left, st.top, factor);
@@ -126,7 +135,6 @@ void Pipeline::rasterizeTriangle(const SplitedTriangle & st) {
 	}
 }
 
-// 切割三角形(任意三角形切为平顶三角形和平底三角形)
 void Pipeline::triangleSpilt(SplitedTriangle & st, const TVertex * v0, const TVertex * v1, const TVertex * v2) {
 	// 三角形顶点按照Y坐标排序（v0 <= v1 <= v2）
 	if (v0->point.y > v1->point.y) swap(v0, v1);
@@ -176,25 +184,36 @@ void Pipeline::triangleSpilt(SplitedTriangle & st, const TVertex * v0, const TVe
 	}
 }
 
-// 判断点是否在CVV里面,返回标识位置的码
-int Pipeline::transformCheckCVV(const Vector4 & v) {
+int Pipeline::checkCVV(const Vector4 & v) {
 	float w = v.w;
 	int check = 0;
 	if (v.z < 0.f) check |= 1;
-	if (v.z > w) check |= 2;
-	if (v.x < -w) check |= 4;
-	if (v.x > w) check |= 8;
-	if (v.y < -w) check |= 16;
-	if (v.y > w) check |= 32;
+	if (v.z > w)   check |= 2;
+	if (v.x < -w)  check |= 4;
+	if (v.x > w)   check |= 8;
+	if (v.y < -w)  check |= 16;
+	if (v.y > w)   check |= 32;
 	return check;
 }
 
-// 坐标归一化,并转换到屏幕空间
 void Pipeline::transformHomogenize(const Vector4 & src, Vector3 & dst) {
-	float rhw = 1.0f / src.w;
-	dst.x = (src.x * rhw + 1.0f) * renderBuffer.getWidth() * 0.5f;
-	dst.y = (1.0f - src.y * rhw) * renderBuffer.getHeight() * 0.5f;
-	dst.z = src.z * rhw;
+	dst = (Vector3)src;
+	dst.x = (dst.x + 1.0f) * renderBuffer.getWidth() * 0.5f;
+	dst.y = (1.0f - dst.y) * renderBuffer.getHeight() * 0.5f;
+}
+
+void Pipeline::renderLine(const Line & line, const Matrix44 & transform) {
+	Vector4 c0, c1;
+	Vector3 p0, p1;
+	transform.apply(line.vertices[0].point, c0);
+	transform.apply(line.vertices[1].point, c1);
+
+	if (checkCVV(c0) && checkCVV(c1)) return;
+
+	transformHomogenize(c0, p0);
+	transformHomogenize(c1, p1);
+
+	rasterizeLine((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, line.vertices[0].color, line.vertices[1].color);
 }
 
 void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transform, const Matrix44 & normalMatrix) {
@@ -203,7 +222,7 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 	currentShadeFunc = mesh->shadeFunc;
 
 #pragma omp parallel for schedule(dynamic)
-	for (int i = 0; (UInt)i < mesh->primitives.size(); i++) {
+	for (int i = 0; (size_t)i < mesh->primitives.size(); i++) {
 		Vertex * vo[3];
 		Vector4 c0, c1, c2;
 		Vector3 p0, p1, p2;
@@ -217,39 +236,41 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 		transform.apply(vo[2]->point, c2);
 
 		// 裁剪测试:可以完善为进一步精细裁剪
-		int cvv[3] = { transformCheckCVV(c0), transformCheckCVV(c1), transformCheckCVV(c2) };
+		int cvv[3] = { checkCVV(c0), checkCVV(c1), checkCVV(c2) };
 		// 全部顶点都在屏幕外就不渲染
 		if (cvv[0] && cvv[1] && cvv[2]) continue;
 
-		// 归一化
+		// 归一化到屏幕空间
 		transformHomogenize(c0, p0);
 		transformHomogenize(c1, p1);
 		transformHomogenize(c2, p2);
 
 		if ((renderState & (~Wireframe)) && (!(cvv[0] || cvv[1] || cvv[2]))) {
-			if (crossProduct(p1 - p0, p2 - p1).z > 0) {  // 背面剔除
-				TVertex v0(*vo[0]), v1(*vo[1]), v2(*vo[2]);
-				SplitedTriangle st;
-				v0.point = p0;
-				v1.point = p1;
-				v2.point = p2;
+			// 背面剔除
+			if (cross(p1 - p0, p2 - p1).z <= 0)
+				continue;
 
-				if (p.extraNormal.isZero()) {
-					normalMatrix.applyDir(vo[0]->normal, v0.normal);
-					normalMatrix.applyDir(vo[1]->normal, v1.normal);
-					normalMatrix.applyDir(vo[2]->normal, v2.normal);
-				} else {
-					normalMatrix.applyDir(p.extraNormal, v0.normal);
-					v1.normal = v2.normal = v0.normal;
-				}
+			TVertex v0(*vo[0]), v1(*vo[1]), v2(*vo[2]);
+			SplitedTriangle st;
+			v0.point = p0;
+			v1.point = p1;
+			v2.point = p2;
 
-				v0.init_rhw(c0.w);
-				v1.init_rhw(c1.w);
-				v2.init_rhw(c2.w);
-
-				triangleSpilt(st, &v0, &v1, &v2);
-				rasterizeTriangle(st);
+			if (p.extraNormal.isZero()) {
+				normalMatrix.applyDir(vo[0]->normal, v0.normal);
+				normalMatrix.applyDir(vo[1]->normal, v1.normal);
+				normalMatrix.applyDir(vo[2]->normal, v2.normal);
+			} else {
+				normalMatrix.applyDir(p.extraNormal, v0.normal);
+				v1.normal = v2.normal = v0.normal;
 			}
+
+			v0.init_rhw(c0.w);
+			v1.init_rhw(c1.w);
+			v2.init_rhw(c2.w);
+
+			triangleSpilt(st, &v0, &v1, &v2);
+			rasterizeTriangle(st);
 		}
 
 		if (renderState & Wireframe) {
@@ -260,28 +281,11 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 	}
 }
 
-void Pipeline::renderLine(const Line & line, const Matrix44 & transform) {
-	Vector4 c0, c1;
-	Vector3 p0, p1;
-	transform.apply(line.vertices[0].point, c0);
-	transform.apply(line.vertices[1].point, c1);
-
-	if (transformCheckCVV(c0) && transformCheckCVV(c1)) return;
-
-	transformHomogenize(c0, p0);
-	transformHomogenize(c1, p1);
-
-	rasterizeLine((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, line.vertices[0].color, line.vertices[1].color);
-}
-
 void Pipeline::render(const Scene & scene) {
 	renderBuffer.fill(clearColor.toRGBInt());
 	ZBuffer.fill(0.f);
 
 	Matrix44 projectionViewTransform = scene.view * scene.projection;
-	
-	int ompNestedState = omp_get_nested();
-	omp_set_nested(true);
 
 	for (size_t i = 0; i < scene.meshes.size(); i++) {
 		renderMesh(scene.meshes[i], scene.modelMatrixs[i] * projectionViewTransform, scene.modelMatrixs[i] * scene.view);
@@ -290,6 +294,4 @@ void Pipeline::render(const Scene & scene) {
 	for (size_t i = 0; i < scene.lines.size(); i++) {
 		renderLine(scene.lines[i], projectionViewTransform);
 	}
-
-	omp_set_nested(ompNestedState);
 }

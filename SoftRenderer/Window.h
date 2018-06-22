@@ -17,12 +17,12 @@ private:
 	bool screen_running = false;
 	int screen_w, screen_h;
 	int screen_mx = 0, screen_my = 0, screen_mb = 0;
-	int screen_keys[512];	// 当前键盘按下状态
+	int screen_keys[512];	            // 当前键盘按下状态
 	HWND screen_handle = nullptr;		// 主窗口 HWND
 	HDC screen_dc = nullptr;			// 配套的 HDC
 	HBITMAP screen_hb = nullptr;		// DIB
 	HBITMAP screen_ob = nullptr;		// 老的 BITMAP
-	unsigned char *screen_fb = nullptr;		// frame buffer
+	unsigned char *screen_fb = nullptr;	// frame buffer
 	long screen_pitch = 0;
 	int current_fps;
 

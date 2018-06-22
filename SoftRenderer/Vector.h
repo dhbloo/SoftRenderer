@@ -14,8 +14,8 @@ public:
 	Vector3(const Vector3 &v) :x(v.x), y(v.y), z(v.z) {};
 	~Vector3() {};
 
-	inline float operator [] (UInt8 i) const { return (&x)[i]; }
-	inline float & operator [] (UInt8 i) { return (&x)[i]; }
+	inline float operator [] (uint8_t i) const { return (&x)[i]; }
+	inline float & operator [] (uint8_t i) { return (&x)[i]; }
 
 	inline Vector3 operator-() const {
 		return Vector3(-x, -y, -z);
@@ -99,21 +99,21 @@ public:
 		return float(x * x + y * y + z * z);
 	}
 
-	inline float distanceTo(const Vector3 & v) const {
-		float ax = x - v.x;
-		float ay = y - v.y;
-		float az = z - v.z;
-		return float(sqrt(ax * ax + ay * ay + az * az));
+	inline friend float distance(const Vector3 & v1, const Vector3 & v2) {
+		float dx = v1.x - v2.x;
+		float dy = v1.x - v2.x;
+		float dz = v1.x - v2.x;
+		return sqrt(dx * dx + dy * dy + dz * dz);
 	}
-	inline float distanceToSqr(const Vector3 & v) const {
-		float ax = x - v.x;
-		float ay = y - v.y;
-		float az = z - v.z;
-		return float(ax * ax + ay * ay + az * az);
+	inline friend float distanceSqr(const Vector3 & v1, const Vector3 & v2) {
+		float dx = v1.x - v2.x;
+		float dy = v1.x - v2.x;
+		float dz = v1.x - v2.x;
+		return dx * dx + dy * dy + dz * dz;
 	}
 
 	// 计算两向量的叉乘
-	inline friend Vector3 crossProduct(const Vector3 &a, const Vector3 &b) {
+	inline friend Vector3 cross(const Vector3 &a, const Vector3 &b) {
 		return Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 	}
 	// 标量乘法
@@ -150,6 +150,7 @@ public:
 	}
 };
 
+
 class Vector4 {
 public:
 	float x, y, z, w;
@@ -160,8 +161,8 @@ public:
 	Vector4(const Vector4 &v) :x(v.x), y(v.y), z(v.z), w(v.w) {};
 	~Vector4() {};
 
-	inline float operator [] (UInt8 i) const { return (&x)[i]; }
-	inline float & operator [] (UInt8 i) { return (&x)[i]; }
+	inline float operator [] (uint8_t i) const { return (&x)[i]; }
+	inline float & operator [] (uint8_t i) { return (&x)[i]; }
 
 	inline Vector4 operator-() const {
 		return Vector4(-x, -y, -z);
@@ -173,11 +174,6 @@ public:
 
 	inline bool operator!=(const Vector4 & v) const {
 		return x != v.x || y != v.y || z != v.z || w != v.w;
-	}
-
-	inline bool isZero() const {
-		float oneOverW = 1.0f / w;
-		return Math::isZero(x * oneOverW) && Math::isZero(y * oneOverW) && Math::isZero(z * oneOverW);
 	}
 
 	inline Vector4 operator+(const Vector4 & v) const {
@@ -212,14 +208,6 @@ public:
 		return *this;
 	}
 
-	inline Vector4 & operator+=(const float a) {
-		x += a, y += a, z += a;
-		return *this;
-	}
-	inline Vector4 & operator-=(const float a) {
-		x -= a, y -= a, z -= a;
-		return *this;
-	}
 	inline Vector4 & operator*=(const float a) {
 		x *= a, y *= a, z *= a;
 		return *this;
@@ -230,48 +218,12 @@ public:
 		return *this;
 	}
 
-	inline Vector4 & normalize() {
-		float magSq = x * x + y * y + z * z;
-		if (magSq > .0f) {
-			float oneOverMag = 1.0f / sqrt(magSq);
-			x *= oneOverMag, y *= oneOverMag, z *= oneOverMag;
-		}
-		return *this;
+	// 将齐次坐标转换到笛卡尔坐标
+	inline explicit operator Vector3() const {
+		float oneOverW = 1.0f / w;
+		return Vector3(x * oneOverW, y * oneOverW, z * oneOverW);
 	}
 
-	inline Vector4 NormalizedVector() {
-		float magSq = x * x + y * y + z * z;
-		if (magSq > .0f) {
-			float oneOverMag = 1.0f / sqrt(magSq);
-			return Vector4(x * oneOverMag, y * oneOverMag, z * oneOverMag);
-		}
-		return Zero();
-	}
-
-	inline float length() const {
-		return float(sqrt(x * x + y * y + z * z));
-	}
-	inline float lengthSqr() const {
-		return float(x * x + y * y + z * z);
-	}
-
-	inline float distanceTo(const Vector4 & v) const {
-		float ax = x - v.x;
-		float ay = y - v.y;
-		float az = z - v.z;
-		return float(sqrt(ax * ax + ay * ay + az * az));
-	}
-	inline float distanceToSqr(const Vector4 & v) const {
-		float ax = x - v.x;
-		float ay = y - v.y;
-		float az = z - v.z;
-		return float(ax * ax + ay * ay + az * az);
-	}
-
-	// 计算两向量的叉乘
-	inline friend Vector4 crossProduct(const Vector4 &a, const Vector4 &b) {
-		return Vector4(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-	}
 	// 标量乘法
 	inline friend Vector4 operator*(float k, const Vector4 &v) {
 		return Vector4(k * v.x, k * v.y, k * v.z);

@@ -13,7 +13,7 @@ public:
 	RGBColor(float r, float g, float b) : r(r), g(g), b(b) {}
 	~RGBColor() {}
 
-	float operator[](UInt i) { return (&r)[i]; }
+	float operator[](size_t i) { return (&r)[i]; }
 
 	bool operator ==(const RGBColor & color) {
 		return color.r == r && color.g == g && color.b == b;
@@ -123,16 +123,16 @@ public:
 		return *this;
 	}
 
-	inline void toByte(UInt8 & rb, UInt8 & gb, UInt8 & bb) const {
-		rb = UInt8(Math::clamp(int(r * 255 + 0.5), 0, 255));
-		gb = UInt8(Math::clamp(int(g * 255 + 0.5), 0, 255));
-		bb = UInt8(Math::clamp(int(b * 255 + 0.5), 0, 255));
+	inline void toByte(uint8_t & rb, uint8_t & gb, uint8_t & bb) const {
+		rb = uint8_t(Math::clamp(int(r * 255 + 0.5), 0, 255));
+		gb = uint8_t(Math::clamp(int(g * 255 + 0.5), 0, 255));
+		bb = uint8_t(Math::clamp(int(b * 255 + 0.5), 0, 255));
 	}
 
-	inline void toByte(UInt8 * rb, UInt8 * gb, UInt8 * bb) const {
-		*rb = UInt8(Math::clamp(r * 255 + 0.5, 0, 255));
-		*gb = UInt8(Math::clamp(g * 255 + 0.5, 0, 255));
-		*bb = UInt8(Math::clamp(b * 255 + 0.5, 0, 255));
+	inline void toByte(uint8_t * rb, uint8_t * gb, uint8_t * bb) const {
+		*rb = uint8_t(Math::clamp(r * 255 + 0.5, 0, 255));
+		*gb = uint8_t(Math::clamp(g * 255 + 0.5, 0, 255));
+		*bb = uint8_t(Math::clamp(b * 255 + 0.5, 0, 255));
 	}
 
 	friend std::ostream& operator << (std::ostream &s, const RGBColor &c) {
@@ -144,20 +144,9 @@ public:
 	}
 };
 
-inline RGBColor ColorByte(UInt8 r, UInt8 g, UInt8 b) {
+inline RGBColor ColorByte(uint8_t r, uint8_t g, uint8_t b) {
 	const float s = 1.0f / 255;
 	return RGBColor(r, g, b) *= s;
-}
-
-namespace Colors {
-	const RGBColor Black = RGBColor(0.0, 0.0, 0.0);
-	const RGBColor White = RGBColor(1.0, 1.0, 1.0);
-	const RGBColor Red = RGBColor(1.0, 0.0, 0.0);
-	const RGBColor Green = RGBColor(0.0, 1.0, 0.0);
-	const RGBColor Blue = RGBColor(0.0, 0.0, 1.0);
-	inline RGBColor Random() {
-		return RGBColor((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
-	}
 }
 
 
@@ -193,5 +182,18 @@ public:
 		return *this;
 	}
 };
+
+
+namespace Colors {
+	const RGBColor Black = RGBColor(0.0, 0.0, 0.0);
+	const RGBColor White = RGBColor(1.0, 1.0, 1.0);
+	const RGBColor Red = RGBColor(1.0, 0.0, 0.0);
+	const RGBColor Green = RGBColor(0.0, 1.0, 0.0);
+	const RGBColor Blue = RGBColor(0.0, 0.0, 1.0);
+	inline RGBColor Random() {
+		return RGBColor((float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
+	}
+}
+
 
 #endif

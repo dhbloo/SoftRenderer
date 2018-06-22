@@ -18,6 +18,7 @@
 
 #include "Math.h"
 
+// frequently used type
 using std::string;
 using std::vector;
 using std::array;

@@ -25,7 +25,7 @@ struct Line {
 
 // Èý½ÇÍ¼Ôª
 struct Primitive {
-	UInt vectorIndex[3];
+	size_t vectorIndex[3];
 	Vector3 extraNormal = Vector3::Zero();
 };
 

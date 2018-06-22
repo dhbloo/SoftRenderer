@@ -26,20 +26,20 @@ public:
 	inline float aspect() const { return (float)getWidth() / getHeight(); }
 
 	void set(int x, int y, const T & data) { buffer[y * width + x] = data; }
-	void set(UInt index, const T & data) { assert(index < size); buffer[index] = data; }
+	void set(size_t index, const T & data) { assert(index < size); buffer[index] = data; }
 	void add(int x, int y, const T & data) { buffer[y * width + x] += data; }
-	void add(UInt index, const T & data) { assert(index < size); buffer[index] += data; }
+	void add(size_t index, const T & data) { assert(index < size); buffer[index] += data; }
 
 	void clear(int x, int y) { buffer[y * width + x] = T(); }
 	void fill(const T & data) { 
 		for (int i = 0; i < size; i++) buffer[i] = data;
 	}
 	T get(int x, int y) const { return buffer[y * width + x]; }
-	T get(UInt index) const { assert(index < size); return buffer[index]; }
+	T get(size_t index) const { assert(index < size); return buffer[index]; }
 	void get(T & ref, int x, int y) const { ref = buffer[y * width + x]; }
-	void get(T & ref, UInt index) const { assert(index < size); ref = buffer[index]; }
+	void get(T & ref, size_t index) const { assert(index < size); ref = buffer[index]; }
 
-	T * operator()(UInt index = 0) { return buffer + index; }
+	T * operator()(size_t index = 0) { return buffer + index; }
 	T * operator()(int x, int y) { return buffer + (y * width + x); }
 
 	// x, y ÔÚ[0, 1)·¶Î§ÄÚ

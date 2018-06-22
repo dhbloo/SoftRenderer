@@ -26,7 +26,7 @@ static ShadeFunc currentShader;
 
 shared_ptr<Mesh> createSphere(float radius, int space = 10, const shared_ptr<IntBuffer> & texture = nullptr, const ShadeFunc & shader = nullptr) {
 	const float & dtr = Math::DEGREE_TO_RADIUS;
-	UInt vertexCount = (180 / space) * (360 / space) * 4;
+	size_t vertexCount = (180 / space) * (360 / space) * 4;
 	shared_ptr<Mesh> m = make_shared<Mesh>();
 	Vertex v;
 	v.color = Colors::White;
@@ -66,7 +66,7 @@ shared_ptr<Mesh> createSphere(float radius, int space = 10, const shared_ptr<Int
 		}
 	}
 	
-	for (UInt i = 0; i < vertexCount - 2; i++) {
+	for (size_t i = 0; i < vertexCount - 2; i++) {
 		// 保证每个面方向一致
 		m->primitives.push_back(i % 2 ? Primitive{ i, i + 1, i + 2 } : Primitive{ i + 2, i + 1, i });
 	}
