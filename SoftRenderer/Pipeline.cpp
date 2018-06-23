@@ -1,6 +1,7 @@
 #include "Pipeline.h"
 
-Pipeline::Pipeline(IntBuffer & renderBuffer) : renderBuffer(renderBuffer), renderState(Wireframe),
+Pipeline::Pipeline(IntBuffer & renderBuffer) : renderBuffer(renderBuffer), 
+renderState(WIREFRAME), clearState(CLEAR_COLOR_DEPTH),
 ZBuffer(renderBuffer.getWidth(), renderBuffer.getHeight()) {
 	locks = new omp_lock_t[renderBuffer.getHeight()];
 	for (int i = 0; i < renderBuffer.getHeight(); i++)
@@ -69,8 +70,8 @@ void Pipeline::rasterizeScanline(Scanline & scanline) {
 	int x0 = MAX(scanline.x0, 0), x1 = MIN(scanline.x1, renderBuffer.getWidth() - 1);
 	TVertex vi = scanline.v0, v;
 	RGBColor c;
-	int rs = currentTexture ? renderState : renderState & (~Texture);
-	rs = currentShadeFunc ? rs : rs & (~Shading);
+	int rs = currentTexture ? renderState : renderState & (~TEXTURE);
+	rs = currentShadeFunc ? rs : rs & (~SHADING);
 	float invW = 1.f / renderBuffer.getWidth(), invH = 1.f / renderBuffer.getHeight();
 	Vector3 pos;
 	omp_set_lock(locks + scanline.y);
@@ -78,17 +79,17 @@ void Pipeline::rasterizeScanline(Scanline & scanline) {
 		float rhw = vi.rhw;
 		if (rhw >= zbPtr[x]) {  // 使用Z-buffer判断深度是否满足
 			v = vi * (1.0f / rhw);
-			if (rs & Shading) {
+			if (rs & SHADING) {
 				pos = vi.point, pos.x *= invW, pos.y *= invH;
 				if (currentShadeFunc(c, pos, v.color, v.normal.NormalizedVector(), currentTexture, v.texCoord)) {
 					fbPtr[x] = c.toRGBInt();
 					zbPtr[x] = rhw;
 				}
 			} else {
-				if (rs & Texture) {
+				if (rs & TEXTURE) {
 					c.setRGBInt(currentTexture->get(v.texCoord));
-					if (rs & Color) c *= v.color;
-				} else if (rs & Color) {
+					if (rs & COLOR) c *= v.color;
+				} else if (rs & COLOR) {
 					c = v.color;
 				}
 				fbPtr[x] = c.toRGBInt();
@@ -249,7 +250,7 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 		transformHomogenize(c1, p1);
 		transformHomogenize(c2, p2);
 
-		if ((renderState & (~Wireframe)) && (!(cvv[0] || cvv[1] || cvv[2]))) {
+		if ((renderState & (~WIREFRAME)) && (!(cvv[0] || cvv[1] || cvv[2]))) {
 			// 背面剔除
 			if (cross(p1 - p0, p2 - p1).z <= 0)
 				continue;
@@ -277,7 +278,7 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 			rasterizeTriangle(st);
 		}
 
-		if (renderState & Wireframe) {
+		if (renderState & WIREFRAME) {
 			rasterizeLine((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, vo[0]->color, vo[1]->color);
 			rasterizeLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y, vo[1]->color, vo[2]->color);
 			rasterizeLine((int)p2.x, (int)p2.y, (int)p0.x, (int)p0.y, vo[2]->color, vo[0]->color);
@@ -286,8 +287,11 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 }
 
 void Pipeline::render(const Scene & scene) {
-	renderBuffer.fill(clearColor.toRGBInt());
-	ZBuffer.fill(0.f);
+	// 清除buffer
+	if (clearState | CLEAR_COLOR)
+		renderBuffer.fill(clearColor.toRGBInt());
+	if (clearState | CLEAR_DEPTH)
+		ZBuffer.fill(0.f);
 
 	Matrix44 projectionViewTransform = scene.view * scene.projection;
 

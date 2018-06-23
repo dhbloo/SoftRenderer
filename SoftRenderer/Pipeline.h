@@ -12,12 +12,21 @@
 
 class Pipeline {
 public:
+	// 渲染状态(指示当前的渲染模式)
 	enum RenderState { 
-		Wireframe = 1, 
-		Color = 2, 
-		Texture = 4, 
-		ColoredTexture = Color | Texture,
-		Shading = 8 
+		WIREFRAME = 1, 
+		COLOR = 2, 
+		TEXTURE = 4, 
+		COLOR_TEXTURE = COLOR | TEXTURE,
+		SHADING = 8 
+	};
+
+	// 清除状态(指示渲染前清除哪些buffer)
+	enum ClearState {
+		CLEAR_NONE = 0,
+		CLEAR_COLOR = 1,
+		CLEAR_DEPTH = 2,
+		CLEAR_COLOR_DEPTH = CLEAR_COLOR | CLEAR_DEPTH
 	};
 
 private:
@@ -25,8 +34,9 @@ private:
 	FloatBuffer ZBuffer;        // Z Buffer
 	omp_lock_t * locks;         // 多线程锁
 
-	RGBColor clearColor;
-	RenderState renderState;
+	RGBColor clearColor;        // 清除颜色
+	RenderState renderState;    // 当前的渲染状态
+	ClearState clearState;      // 当前的清除状态
 
 	shared_ptr<IntBuffer> currentTexture;
 	ShadeFunc currentShadeFunc;

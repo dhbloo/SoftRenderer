@@ -4,8 +4,12 @@
 
 using namespace std;
 
-const Pipeline::RenderState states[] = { Pipeline::Wireframe, Pipeline::Color, Pipeline::Texture,
-Pipeline::ColoredTexture, Pipeline::Shading
+const Pipeline::RenderState states[] = { 
+	Pipeline::WIREFRAME, 
+	Pipeline::COLOR, 
+	Pipeline::TEXTURE,
+	Pipeline::COLOR_TEXTURE, 
+	Pipeline::SHADING
 };
 const ShadeFunc shaders[] = {
 	FragmentShader::depth(1.5f, 0),
