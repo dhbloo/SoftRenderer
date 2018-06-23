@@ -80,13 +80,13 @@ void Pipeline::rasterizeScanline(Scanline & scanline) {
 			v = vi * (1.0f / rhw);
 			if (rs & Shading) {
 				pos = vi.point, pos.x *= invW, pos.y *= invH;
-				if (currentShadeFunc(c, pos, v.color, v.normal.NormalizedVector(), currentTexture, v.tex)) {
+				if (currentShadeFunc(c, pos, v.color, v.normal.NormalizedVector(), currentTexture, v.texCoord)) {
 					fbPtr[x] = c.toRGBInt();
 					zbPtr[x] = rhw;
 				}
 			} else {
 				if (rs & Texture) {
-					c.setRGBInt(currentTexture->get(v.tex.u, v.tex.v));
+					c.setRGBInt(currentTexture->get(v.texCoord));
 					if (rs & Color) c *= v.color;
 				} else if (rs & Color) {
 					c = v.color;
@@ -102,10 +102,12 @@ void Pipeline::rasterizeScanline(Scanline & scanline) {
 
 void Pipeline::rasterizeTriangle(const SplitedTriangle & st) {
 	if (st.type & SplitedTriangle::FLAT_TOP) {
-		int y0 = (int)st.bottom.point.y + 1, y1 = (int)st.left.point.y;
-	#pragma omp parallel for schedule(static, 16) 
+		int y0 = (int)st.bottom.point.y + 1;
+		int y1 = (int)st.left.point.y;
+		float yl = st.left.point.y - st.bottom.point.y;
+
 		for (int y = y0; y <= y1; y++) {
-			float factor = (y - st.bottom.point.y) / (st.left.point.y - st.bottom.point.y);
+			float factor = (y - st.bottom.point.y) / yl;
 			TVertex left = Math::lerp(st.bottom, st.left, factor);
 			TVertex right = Math::lerp(st.bottom, st.right, factor);
 			Scanline scanline;
@@ -118,10 +120,12 @@ void Pipeline::rasterizeTriangle(const SplitedTriangle & st) {
 		}
 	}
 	if (st.type & SplitedTriangle::FLAT_BOTTOM) {
-		int y0 = (int)st.left.point.y + 1, y1 = (int)st.top.point.y;
-	#pragma omp parallel for schedule(static, 16) 
+		int y0 = (int)st.left.point.y + 1;
+		int y1 = (int)st.top.point.y;
+		float yl = st.top.point.y - st.left.point.y;
+
 		for (int y = y0; y <= y1; y++) {
-			float factor = (y - st.left.point.y) / (st.top.point.y - st.left.point.y);
+			float factor = (y - st.left.point.y) / yl;
 			TVertex left = Math::lerp(st.left, st.top, factor);
 			TVertex right = Math::lerp(st.right, st.top, factor);
 			Scanline scanline;
@@ -227,9 +231,9 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 		Vector4 c0, c1, c2;
 		Vector3 p0, p1, p2;
 		Primitive & p = mesh->primitives[i];
-		vo[0] = &v[p.vectorIndex[0]];
-		vo[1] = &v[p.vectorIndex[1]];
-		vo[2] = &v[p.vectorIndex[2]];
+		vo[0] = &v[p.vertexIndex[0]];
+		vo[1] = &v[p.vertexIndex[1]];
+		vo[2] = &v[p.vertexIndex[2]];
 		// °´ÕÕ Transform ±ä»¯
 		transform.apply(vo[0]->point, c0);
 		transform.apply(vo[1]->point, c1);

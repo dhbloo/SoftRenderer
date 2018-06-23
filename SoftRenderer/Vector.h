@@ -5,6 +5,145 @@
 
 #include "Define.h"
 
+class Vector2 {
+public:
+	float x, y;
+	Vector2() :x(0), y(0) {};
+	Vector2(float x, float y) :x(x), y(y) {};
+	Vector2(const Vector2 &v) :x(v.x), y(v.y) {};
+	~Vector2() {};
+
+	inline float operator [] (uint8_t i) const { return (&x)[i]; }
+	inline float & operator [] (uint8_t i) { return (&x)[i]; }
+
+	inline Vector2 operator-() const {
+		return Vector2(-x, -y);
+	}
+
+	inline bool operator==(const Vector2 & v) const {
+		return x == v.x && y == v.y;
+	}
+
+	inline bool operator!=(const Vector2 & v) const {
+		return x != v.x || y != v.y;
+	}
+
+	inline bool isZero() const {
+		return Math::isZero(x) && Math::isZero(y);
+	}
+
+	inline Vector2 operator+(const Vector2 & v) const {
+		return Vector2(x + v.x, y + v.y);
+	}
+	inline Vector2 operator-(const Vector2 & v) const {
+		return Vector2(x - v.x, y - v.y);
+	}
+
+	inline float operator*(const Vector2 & v) const {
+		return x * v.x + y * v.y;
+	}
+
+	inline Vector2 operator*(const float a) const {
+		return Vector2(x * a, y * a);
+	}
+	inline Vector2 operator/(const float a) const {
+		float oneOverA = 1.0f / a;
+		return Vector2(x * oneOverA, y * oneOverA);
+	}
+
+	inline Vector2 & operator+=(const Vector2 & v) {
+		x += v.x, y += v.y;
+		return *this;
+	}
+	inline Vector2 & operator-=(const Vector2 & v) {
+		x -= v.x, y -= v.y;
+		return *this;
+	}
+	inline Vector2 & operator*=(const Vector2 & v) {
+		x *= v.x, y *= v.y;
+		return *this;
+	}
+	inline Vector2 & operator*=(const float a) {
+		x *= a, y *= a;
+		return *this;
+	}
+	inline Vector2 & operator/=(const float a) {
+		float oneOverA = 1.0f / a;
+		x *= oneOverA, y *= oneOverA;
+		return *this;
+	}
+
+	inline Vector2 & normalize() {
+		float magSq = x * x + y * y;
+		if (magSq > .0f) {
+			float oneOverMag = 1.0f / sqrt(magSq);
+			x *= oneOverMag, y *= oneOverMag;
+		}
+		return *this;
+	}
+
+	inline Vector2 NormalizedVector() {
+		float magSq = x * x + y * y;
+		if (magSq > .0f) {
+			float oneOverMag = 1.0f / sqrt(magSq);
+			return Vector2(x * oneOverMag, y * oneOverMag);
+		}
+		return Zero();
+	}
+
+	inline float length() const {
+		return float(sqrt(x * x + y * y));
+	}
+	inline float lengthSqr() const {
+		return float(x * x + y * y);
+	}
+
+	inline friend float distance(const Vector2 & v1, const Vector2 & v2) {
+		float dx = v1.x - v2.x;
+		float dy = v1.x - v2.x;
+		return sqrt(dx * dx + dy * dy);
+	}
+	inline friend float distanceSqr(const Vector2 & v1, const Vector2 & v2) {
+		float dx = v1.x - v2.x;
+		float dy = v1.x - v2.x;
+		return dx * dx + dy * dy;
+	}
+
+	// 标量乘法
+	inline friend Vector2 operator*(float k, const Vector2 &v) {
+		return Vector2(k * v.x, k * v.y);
+	}
+
+	inline friend Vector2 & operator*=(float k, Vector2 &v) {
+		v.x *= k, v.y *= k;
+		return v;
+	}
+
+	friend std::ostream& operator << (std::ostream &s, const Vector2 &v) {
+		return s << "Vec2(" << v.x << "," << v.y << ")";
+	}
+
+	inline const static Vector2 & Zero() {
+		const static Vector2 zeroVector = Vector2();
+		return zeroVector;
+	}
+
+	// 反射函数
+	inline friend Vector2 reflect(const Vector2 &inDir, const Vector2 &normal) {
+		return inDir - 2 * (inDir * normal) * normal;
+	}
+
+	// 折射函数
+	inline friend Vector2 refract(const Vector2 &inDir, const Vector2 &normal, float ior) {
+		float cosI = Math::clamp(inDir * normal, -1, 1);
+		Vector2 n = normal;
+		if (cosI < 0) { cosI = -cosI; ior = 1 / ior; } else { n = -n; }
+		float k = 1 - ior * ior * (1 - cosI * cosI);
+		return k < 0 ? Vector2::Zero() : ior * inDir + (ior * cosI - sqrt(k)) * n;
+	}
+};
+
+
 class Vector3 {
 public:
 	float x, y, z;
@@ -155,9 +294,8 @@ class Vector4 {
 public:
 	float x, y, z, w;
 	Vector4() :x(0), y(0), z(0), w(1.f) {};
-	Vector4(float x) :x(x), y(x), z(x), w(1.f) {};
 	Vector4(float x, float y, float z, float w = 1.0f) :x(x), y(y), z(z), w(w) {};
-	Vector4(const Vector3 &v) :x(v.x), y(v.y), z(v.z), w(1.f) {};
+	Vector4(const Vector3 &v, float w) :x(v.x), y(v.y), z(v.z), w(w) {};
 	Vector4(const Vector4 &v) :x(v.x), y(v.y), z(v.z), w(v.w) {};
 	~Vector4() {};
 

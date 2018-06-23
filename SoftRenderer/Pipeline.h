@@ -12,11 +12,18 @@
 
 class Pipeline {
 public:
-	enum RenderState { Wireframe = 1, Color = 2, Texture = 4, ColoredTexture = 6, Shading = 8 };
+	enum RenderState { 
+		Wireframe = 1, 
+		Color = 2, 
+		Texture = 4, 
+		ColoredTexture = Color | Texture,
+		Shading = 8 
+	};
+
 private:
-	IntBuffer & renderBuffer;
-	FloatBuffer ZBuffer;
-	omp_lock_t * locks;
+	IntBuffer & renderBuffer;   // 渲染缓冲区
+	FloatBuffer ZBuffer;        // Z Buffer
+	omp_lock_t * locks;         // 多线程锁
 
 	RGBColor clearColor;
 	RenderState renderState;

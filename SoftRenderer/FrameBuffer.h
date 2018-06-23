@@ -3,6 +3,7 @@
 #ifndef _FRAMEBUFFER_H_
 #define _FRAMEBUFFER_H_
 
+#include "Vector.h"
 #include "Color.h"
 
 template <class T>
@@ -48,16 +49,16 @@ public:
 		y = Math::fastFract(y);
 		return get((int)(x * width) % width, (int)(y * height) % height);
 	}
-	void get(T & ref, float x, float y) const {
-		x = Math::fastFract(x);
-		y = Math::fastFract(y);
-		get(ref, (int)(x * width) % width, (int)(y * height) % height);
+	
+	// 二维向量(每个元素在[0, 1)范围内)
+	T get(const Vector2 & pos) const {
+		return get(pos.x, pos.y);
 	}
 };
 
-typedef FrameBuffer<RGBColor> ColorBuffer;
 typedef FrameBuffer<float> FloatBuffer;
 typedef FrameBuffer<int> IntBuffer;
+typedef FrameBuffer<RGBColor> ColorBuffer;
 
 shared_ptr<IntBuffer> CreateTexture(const char * filename);
 

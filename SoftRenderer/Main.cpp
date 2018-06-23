@@ -35,32 +35,32 @@ shared_ptr<Mesh> createSphere(float radius, int space = 10, const shared_ptr<Int
 			v.point.x = radius * sin(a * dtr) * sin(b * dtr);
 			v.point.y = radius * cos(a * dtr) * sin(b * dtr);
 			v.point.z = radius * cos(b * dtr);
-			v.tex.u = a / 360.f;
-			v.tex.v = b / 180.f;
+			v.texCoord.x = a / 360.f;
+			v.texCoord.y = b / 180.f;
 			v.normal = v.point;
 			m->vertices.push_back(v);
 
 			v.point.x = radius * sin(a * dtr) * sin((b + space) * dtr);
 			v.point.y = radius * cos(a * dtr) * sin((b + space) * dtr);
 			v.point.z = radius * cos((b + space) * dtr);
-			v.tex.u = a / 360.f;
-			v.tex.v = (b + space) / 180.f;
+			v.texCoord.x = a / 360.f;
+			v.texCoord.y = (b + space) / 180.f;
 			v.normal = v.point;
 			m->vertices.push_back(v);
 
 			v.point.x = radius * sin((a + space) * dtr) * sin(b * dtr);
 			v.point.y = radius * cos((a + space) * dtr) * sin(b * dtr);
 			v.point.z = radius * cos(b * dtr);
-			v.tex.u = (a + space) / 360.f;
-			v.tex.v = b / 180.f;
+			v.texCoord.x = (a + space) / 360.f;
+			v.texCoord.y = b / 180.f;
 			v.normal = v.point;
 			m->vertices.push_back(v);
 
 			v.point.x = radius * sin((a + space) * dtr) * sin((b + space) * dtr);
 			v.point.y = radius * cos((a + space) * dtr) * sin((b + space) * dtr);
 			v.point.z = radius * cos((b + space) * dtr);
-			v.tex.u = (a + space) / 360.f;
-			v.tex.v = (b + space) / 180.f;
+			v.texCoord.x = (a + space) / 360.f;
+			v.texCoord.y = (b + space) / 180.f;
 			v.normal = v.point;
 			m->vertices.push_back(v);
 		}
@@ -78,7 +78,7 @@ shared_ptr<Mesh> createSphere(float radius, int space = 10, const shared_ptr<Int
 
 void solarSystem(Scene & scene) {
 	static shared_ptr<Mesh> sun = createSphere(3, 9, nullptr,
-		[](RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal, const shared_ptr<IntBuffer> & texture, const TexCoord & tex) -> bool {
+		[](RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal, const shared_ptr<IntBuffer> & texture, const TexCoord & texCoord) -> bool {
 		out = RGBColor(1, 1, 0);
 		return true;
 	});
@@ -158,6 +158,8 @@ void createScene(Scene & scene, int index) {
 		break;
 	}
 }
+
+
 
 int main() {
 	SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);

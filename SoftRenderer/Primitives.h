@@ -7,14 +7,12 @@
 #include "Color.h"
 #include "FrameBuffer.h"
 
-struct TexCoord {
-	float u, v;
-};
+typedef Vector2 TexCoord;
 
 struct Vertex {
 	Vector3 point;
 	RGBColor color;
-	TexCoord tex;
+	TexCoord texCoord;
 	Vector3 normal;
 };
 
@@ -25,11 +23,15 @@ struct Line {
 
 // 三角图元
 struct Primitive {
-	size_t vectorIndex[3];
+	size_t vertexIndex[3];
 	Vector3 extraNormal = Vector3::Zero();
 };
 
-typedef function<bool(RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal, const shared_ptr<IntBuffer> & texture, const TexCoord & tex)> ShadeFunc;
+// 着色函数
+typedef function<
+	bool(RGBColor & out, const Vector3 & pos, const RGBColor & color, const Vector3 & normal,
+		const shared_ptr<IntBuffer> & texture, const TexCoord & texCoord)
+> ShadeFunc;
 
 // 三角Mesh
 struct Mesh {
@@ -39,98 +41,72 @@ struct Mesh {
 	ShadeFunc shadeFunc;
 };
 
+// 带透视矫正的插值顶点
 struct TVertex {
 	Vector3 point;
 	RGBColor color;
-	TexCoord tex;
+	TexCoord texCoord;
 	Vector3 normal;
 	float rhw;
 
 	TVertex() {}
-	TVertex(const Vertex & vertex) : color(vertex.color), tex(vertex.tex) {}
-	TVertex(const Vector3 & point, const RGBColor & color, float u, float v, const Vector3 & normal, float rhw) :
-		point(point), color(color), normal(normal), rhw(rhw) {
-		tex.u = u; tex.v = v;
-	}
+	TVertex(const Vertex & vertex) : color(vertex.color), texCoord(vertex.texCoord) {}
+	TVertex(const Vector3 & point, const RGBColor & color, TexCoord texCoord, const Vector3 & normal, float rhw) :
+		point(point), color(color), normal(normal), rhw(rhw), texCoord(texCoord) {}
 
 	void init_rhw(float w) {
 		rhw = 1.0f / w;
 		color *= rhw;
-		tex.u *= rhw;
-		tex.v *= rhw;
+		texCoord *= rhw;
 		normal *= rhw;
 	}
 	TVertex operator+ (const TVertex & vertex) const {
 		return TVertex {
-			Vector3(
-				point.x + vertex.point.x,
-				point.y + vertex.point.y,
-				point.z + vertex.point.z
-			),
+			point + vertex.point,
 			color + vertex.color,
-			tex.u + vertex.tex.u,
-			tex.v + vertex.tex.v,
+			texCoord + vertex.texCoord,
 			normal + vertex.normal,
 			rhw + vertex.rhw
 		};
 	}
 	TVertex & operator+= (const TVertex & vertex) {
-		point.x += vertex.point.x;
-		point.y += vertex.point.y;
-		point.z += vertex.point.z;
+		point += vertex.point;
 		color += vertex.color;
-		tex.u += vertex.tex.u;
-		tex.v += vertex.tex.v;
+		texCoord += vertex.texCoord;
 		normal += vertex.normal;
 		rhw += vertex.rhw;
 		return *this;
 	}
 	TVertex operator- (const TVertex & vertex) const {
 		return TVertex{
-			Vector3(
-				point.x - vertex.point.x,
-				point.y - vertex.point.y,
-				point.z - vertex.point.z
-			),
+			point - vertex.point,
 			color - vertex.color,
-			tex.u - vertex.tex.u,
-			tex.v - vertex.tex.v,
+			texCoord - vertex.texCoord,
 			normal - vertex.normal,
 			rhw - vertex.rhw,
 		};
 	}
 	TVertex & operator-= (const TVertex & vertex) {
-		point.x -= vertex.point.x;
-		point.y -= vertex.point.y;
-		point.z -= vertex.point.z;
+		point -= vertex.point;
 		color -= vertex.color;
-		tex.u -= vertex.tex.u;
-		tex.v -= vertex.tex.v;
+		texCoord -= vertex.texCoord;
 		normal -= vertex.normal;
 		rhw -= vertex.rhw;
 		return *this;
 	}
 	TVertex operator* (float k) const {
 		return TVertex{
-			Vector3(
-				point.x * k,
-				point.y * k,
-				point.z * k
-			),
+			point * k,
 			color * k,
-			tex.u * k,
-			tex.v * k,
+			texCoord * k,
 			normal * k,
-			rhw * k ,
+			rhw * k,
 		};
 	}
 	TVertex & operator*= (float k) {
-		point.x *= k;
-		point.y *= k;
-		point.z *= k;
+		point *= k;
 		color *= k;
-		tex.u *= k;
-		tex.v *= k;
+		texCoord *= k;
 		normal *= k;
 		rhw *= k;
 		return *this;
@@ -138,17 +114,27 @@ struct TVertex {
 	
 };
 
+// 单根扫描线(横向)
 struct Scanline {
 	TVertex v0, step;
 	int x0, x1, y;
 };
 
+// 切割后的三角形组
 struct SplitedTriangle {
-	enum TriangleType { NONE, FLAT_TOP, FLAT_BOTTOM, FLAT_TOP_BOTTOM };
+	// 切割后的三角形种类
+	// 00:无 01:平顶 10:平底 11:平顶+平底
+	enum TriangleType { 
+		NONE, 
+		FLAT_TOP, 
+		FLAT_BOTTOM, 
+		FLAT_TOP_BOTTOM 
+	};
+
 	TVertex top;
 	TVertex left, right;
 	TVertex bottom;
-	TriangleType type;   // 切割的三角形编号(00:无 01:平顶 10:平底 11:平顶+平底)
+	TriangleType type;   
 };
 
 #endif
