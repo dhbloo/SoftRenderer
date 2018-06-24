@@ -1,7 +1,8 @@
 #include "Pipeline.h"
 
-Pipeline::Pipeline(IntBuffer & renderBuffer) : renderBuffer(renderBuffer), 
+Pipeline::Pipeline(IntBuffer & renderBuffer) : renderBuffer(renderBuffer),
 renderState(WIREFRAME), clearState(CLEAR_COLOR_DEPTH),
+smoothLine(true),
 ZBuffer(renderBuffer.getWidth(), renderBuffer.getHeight()) {
 	locks = new omp_lock_t[renderBuffer.getHeight()];
 	for (int i = 0; i < renderBuffer.getHeight(); i++)
@@ -62,6 +63,76 @@ void Pipeline::rasterizeLine(int x0, int y0, int x1, int y1, RGBColor c0, RGBCol
 			drawPixel(x1, y1, c0);
 		}
 	}
+}
+
+void Pipeline::rasterizeLine_antialiasing(float x0, float y0, float x1, float y1, RGBColor c0, RGBColor c1) {
+	bool steep = std::abs(y1 - y0) > std::abs(x1 - x0);
+
+	if (steep)
+		std::swap(x0, y0), std::swap(x1, y1);
+	if (x0 > x1)
+		std::swap(x0, x1), std::swap(y0, y1), std::swap(c0, c1);
+
+	float dx = x1 - x0, dy = y1 - y0;
+	float gradient = (dx == 0.0f) ? 1.0f : dy / dx;
+
+	// handle first endpoint
+	float xend = std::round(x0);
+	float yend = y0 + gradient * (xend - x0);
+	float xgap = 1.0f - Math::fract(x0 + 0.5f);
+	int xpxl1 = (int)xend;  // this will be used in the main loop
+	int ypxl1 = (int)yend;
+
+	if (steep) {
+		drawPixel(ypxl1, xpxl1, (1.0f - Math::fract(yend)) * xgap * c0);
+		drawPixel(ypxl1 + 1, xpxl1, Math::fract(yend) * xgap * c0);
+	} else {
+		drawPixel(xpxl1, ypxl1, (1.0f - Math::fract(yend)) * xgap * c0);
+		drawPixel(xpxl1, ypxl1 + 1, Math::fract(yend) * xgap * c0);
+	}
+
+	// first y-intersection for the main loop
+	float intery = yend + gradient;
+
+	// handle second endpoint
+	xend = std::round(x1);
+	yend = y1 + gradient * (xend - x1);
+	xgap = Math::fract(x1 + 0.5f);
+	int xpxl2 = (int)xend; // this will be used in the main loop
+	int ypxl2 = (int)yend;
+
+	if (steep) {
+		drawPixel(ypxl2, xpxl2, (1.0f - Math::fract(yend)) * xgap * c1);
+		drawPixel(ypxl2 + 1, xpxl2, Math::fract(yend) * xgap * c1);
+	} else {
+		drawPixel(xpxl2, ypxl2, (1.0f - Math::fract(yend)) * xgap * c1);
+		drawPixel(xpxl2, ypxl2 + 1, Math::fract(yend) * xgap * c1);
+	}
+
+	RGBColor ci = (c1 - c0) / (xpxl2 - xpxl1 - 2.f);
+	RGBColor c = c0, co;
+	if (steep) {
+		for (int x = xpxl1 + 1; x < xpxl2; x++) {
+			float fpart = Math::fract(intery);
+			co.setRGBInt(renderBuffer.get((int)intery, x));
+			drawPixel((int)intery, x, Math::lerp(co, c, 1.0f - fpart));
+			co.setRGBInt(renderBuffer.get((int)intery + 1, x));
+			drawPixel((int)intery + 1, x, Math::lerp(co, c, fpart));
+			intery += gradient;
+			c += ci;
+		}
+	} else {
+		for (int x = xpxl1 + 1; x < xpxl2; x++) {
+			float fpart = Math::fract(intery);
+			co.setRGBInt(renderBuffer.get(x, (int)intery));
+			drawPixel(x, (int)intery, Math::lerp(co, c, 1.0f - fpart));
+			co.setRGBInt(renderBuffer.get(x, (int)intery + 1));
+			drawPixel(x, (int)intery + 1, Math::lerp(co, c, fpart));
+			intery += gradient;
+			c += ci;
+		}
+	}
+	
 }
 
 void Pipeline::rasterizeScanline(Scanline & scanline) {
@@ -218,7 +289,12 @@ void Pipeline::renderLine(const Line & line, const Matrix44 & transform) {
 	transformHomogenize(c0, p0);
 	transformHomogenize(c1, p1);
 
-	rasterizeLine((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, line.vertices[0].color, line.vertices[1].color);
+	if (smoothLine) {
+		rasterizeLine_antialiasing(p0.x, p0.y, p1.x, p1.y, line.vertices[0].color, line.vertices[1].color);
+	} else {
+		rasterizeLine((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, line.vertices[0].color, line.vertices[1].color);
+	}
+	
 }
 
 void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transform, const Matrix44 & normalMatrix) {
@@ -279,9 +355,16 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 		}
 
 		if (renderState & WIREFRAME) {
-			rasterizeLine((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, vo[0]->color, vo[1]->color);
-			rasterizeLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y, vo[1]->color, vo[2]->color);
-			rasterizeLine((int)p2.x, (int)p2.y, (int)p0.x, (int)p0.y, vo[2]->color, vo[0]->color);
+			if (smoothLine) {
+				rasterizeLine_antialiasing(p0.x, p0.y, p1.x, p1.y, vo[0]->color, vo[1]->color);
+				rasterizeLine_antialiasing(p1.x, p1.y, p2.x, p2.y, vo[1]->color, vo[2]->color);
+				rasterizeLine_antialiasing(p2.x, p2.y, p0.x, p0.y, vo[2]->color, vo[0]->color);
+			} else {
+				rasterizeLine((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, vo[0]->color, vo[1]->color);
+				rasterizeLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y, vo[1]->color, vo[2]->color);
+				rasterizeLine((int)p2.x, (int)p2.y, (int)p0.x, (int)p0.y, vo[2]->color, vo[0]->color);
+			}
+			
 		}
 	}
 }
@@ -295,11 +378,14 @@ void Pipeline::render(const Scene & scene) {
 
 	Matrix44 projectionViewTransform = scene.view * scene.projection;
 
+	// ‰÷»æMesh
 	for (size_t i = 0; i < scene.meshes.size(); i++) {
 		renderMesh(scene.meshes[i], scene.modelMatrixs[i] * projectionViewTransform, scene.modelMatrixs[i] * scene.view);
 	}
 
-	for (size_t i = 0; i < scene.lines.size(); i++) {
+	// ‰÷»æœﬂÃı
+#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; (size_t)i < scene.lines.size(); i++) {
 		renderLine(scene.lines[i], projectionViewTransform);
 	}
 }

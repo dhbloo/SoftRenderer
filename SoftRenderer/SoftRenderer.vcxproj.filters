@@ -48,12 +48,6 @@
     <ClInclude Include="Scene.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="include\stb_image.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="include\stb_image_write.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="ShaderPrefab.h">
       <Filter>头文件</Filter>
     </ClInclude>

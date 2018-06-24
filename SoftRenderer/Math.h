@@ -68,16 +68,20 @@ namespace Math {
 		return x > -EPS && x < EPS;
 	}
 
-	inline int fastFloor(float x) {
-		return x >= 0 ? int(x) : int(x) - 1;
+	inline int floor(float x) {
+		return int(x) - (x >= 0 ? 0 : 1);
 	}
 
-	inline int fastCeil(float x) {
-		return x >= 0 ? int(x) + 1 : int(x);
+	inline int ceil(float x) {
+		return int(x) + (x >= 0 ? 1 : 0);
 	}
 
-	inline float fastFract(float x) {
-		return x - (x >= 0 ? int(x) : int(x) - 1);
+	inline int round(float x) {
+		return floor(x + 0.5f);
+	}
+
+	inline float fract(float x) {
+		return x - std::floor(x);
 	}
 
 	inline float fastPow(float a, float b) {
@@ -126,7 +130,7 @@ namespace Math {
 
 	inline float fastSin(float x) {
 		x = (x - PI / 2) / (2 * PI);
-		x -= fastFloor(x);
+		x -= floor(x);
 		x = abs(x * 2 - 1);
 		x = smoothStep(0.0f, 1.0f, x) * 2 - 1;
 		return x;
@@ -134,7 +138,7 @@ namespace Math {
 
 	inline float fastCos(float x) {
 		x = x / (2 * PI) - 1;
-		x -= fastFloor(x);
+		x -= floor(x);
 		x = abs(x * 2 - 1);
 		x = smoothStep(0.0f, 1.0f, x) * 2 - 1;
 		return x;

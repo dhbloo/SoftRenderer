@@ -45,8 +45,8 @@ public:
 
 	// x, y ÔÚ[0, 1)·¶Î§ÄÚ
 	T get(float x, float y) const {
-		x = Math::fastFract(x);
-		y = Math::fastFract(y);
+		x = Math::fract(x);
+		y = Math::fract(y);
 		return get((int)(x * width) % width, (int)(y * height) % height);
 	}
 	

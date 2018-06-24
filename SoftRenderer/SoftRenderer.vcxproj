@@ -129,8 +129,6 @@
     <ClInclude Include="Color.h" />
     <ClInclude Include="Define.h" />
     <ClInclude Include="FrameBuffer.h" />
-    <ClInclude Include="include\stb_image.h" />
-    <ClInclude Include="include\stb_image_write.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="Matrix44.h" />
     <ClInclude Include="Pipeline.h" />

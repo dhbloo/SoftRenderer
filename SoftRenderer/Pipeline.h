@@ -30,21 +30,30 @@ public:
 	};
 
 private:
+	////          缓冲区Buffer          ////
 	IntBuffer & renderBuffer;   // 渲染缓冲区
 	FloatBuffer ZBuffer;        // Z Buffer
 	omp_lock_t * locks;         // 多线程锁
+
+	////          当前渲染设置          ////
 
 	RGBColor clearColor;        // 清除颜色
 	RenderState renderState;    // 当前的渲染状态
 	ClearState clearState;      // 当前的清除状态
 
-	shared_ptr<IntBuffer> currentTexture;
-	ShadeFunc currentShadeFunc;
+	bool smoothLine;            // 是否开启线条抗锯齿
+
+	////       当前渲染的状态变量       ////
+
+	shared_ptr<IntBuffer> currentTexture;   // 当前Mesh使用的纹理
+	ShadeFunc currentShadeFunc;             // 当前Mesh使用的着色函数
 
 	// 画像素点(会检查越界)
 	void drawPixel(int x, int y, const RGBColor & color);
-	// 光栅化直线
+	// 光栅化直线(Bresenham's algorithm)
 	void rasterizeLine(int x0, int y0, int x1, int y1, RGBColor c0, RGBColor c1);
+	// 光栅化反走样直线(Xiaolin Wu's line algorithm)
+	void rasterizeLine_antialiasing(float x0, float y0, float x1, float y1, RGBColor c0, RGBColor c1);
 	// 光栅化扫描线
 	void rasterizeScanline(Scanline & scanline);
 	// 切割三角形(任意三角形切为平顶三角形和平底三角形)
