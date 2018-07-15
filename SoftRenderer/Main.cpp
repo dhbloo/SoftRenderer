@@ -130,14 +130,14 @@ void createScene(Scene & scene, int index) {
 		break;
 	case 1:
 		m->vertices = {
-			{ Vector3(-0.5f, -0.5f,  0.5f), Colors::Red, TexCoord {0, 0} },
-			{ Vector3(0.5f, -0.5f,  0.5f), Colors::Green, TexCoord{ 1, 0 } },
-			{ Vector3(0.5f,  0.5f,  0.5f), Colors::Blue, TexCoord{ 1, 1 } },
+			{ Vector3(-0.5f, -0.5f,  0.5f), Colors::Red,   TexCoord{ 0, 0 } },
+			{ Vector3(0.5f, -0.5f,  0.5f),  Colors::Green, TexCoord{ 1, 0 } },
+			{ Vector3(0.5f,  0.5f,  0.5f),  Colors::Blue,  TexCoord{ 1, 1 } },
 			{ Vector3(-0.5f,  0.5f,  0.5f), Colors::White, TexCoord{ 0, 1 } },
-			{ Vector3(-0.5f, -0.5f, -0.5f), Colors::Blue, TexCoord{ 1, 0 } },
-			{ Vector3(-0.5f,  0.5f, -0.5f), Colors::Red, TexCoord{ 1, 1 } },
-			{ Vector3(0.5f,  0.5f, -0.5f), Colors::Green, TexCoord{ 0, 1 } },
-			{ Vector3(0.5f, -0.5f, -0.5f), Colors::White, TexCoord{ 0, 0 } }
+			{ Vector3(-0.5f, -0.5f, -0.5f), Colors::Blue,  TexCoord{ 1, 0 } },
+			{ Vector3(-0.5f,  0.5f, -0.5f), Colors::Red,   TexCoord{ 1, 1 } },
+			{ Vector3(0.5f,  0.5f, -0.5f),  Colors::Green, TexCoord{ 0, 1 } },
+			{ Vector3(0.5f, -0.5f, -0.5f),  Colors::White, TexCoord{ 0, 0 } }
 		};
 		m->primitives = {
 			Primitive{ 0,1,2, Vector3(0,0,1) }, Primitive{ 0,2,3, Vector3(0,0,1) },

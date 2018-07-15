@@ -10,14 +10,11 @@ public:
 	float r, g, b;
 
 	RGBColor() : r(0.f), g(0.f), b(0.f) {}
+	RGBColor(const RGBColor & color) : r(color.r), g(color.g), b(color.b) {}
 	RGBColor(float r, float g, float b) : r(r), g(g), b(b) {}
 	~RGBColor() {}
 
 	float operator[](size_t i) { return (&r)[i]; }
-
-	bool operator ==(const RGBColor & color) {
-		return color.r == r && color.g == g && color.b == b;
-	}
 
 	RGBColor operator - () const {
 		return RGBColor(-r, -g, -b);
@@ -116,6 +113,10 @@ public:
 		return (ir << 16) | (ig << 8) | ib;
 	}
 
+	explicit operator int() const {
+		return toRGBInt();
+	}
+
 	inline RGBColor & setRGBInt(int rgb) {
 		r = ((rgb >> 16) & 0xFF) / 255.0f;
 		g = ((rgb >> 8) & 0xFF) / 255.0f;
@@ -142,6 +143,8 @@ public:
 	inline friend RGBColor operator*(float k, const RGBColor & c) {
 		return RGBColor(k * c.r, k * c.g, k * c.b);
 	}
+
+	RGBColor(int rgb) { setRGBInt(rgb); }
 };
 
 inline RGBColor ColorByte(uint8_t r, uint8_t g, uint8_t b) {

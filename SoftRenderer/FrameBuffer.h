@@ -9,45 +9,45 @@
 template <class T>
 class FrameBuffer {
 protected:
-	int width, height;
-	int size;
+	size_t width, height;
+	size_t size;
 	T * buffer;
 
 public:
-	FrameBuffer(int width, int height) : width(width), height(height), size(width * height) {
-		buffer = new T[width * height];
+	FrameBuffer(size_t width, size_t height) : width(width), height(height), size(width * height) {
+		buffer = new T[size];
 	}
 	~FrameBuffer() {
 		delete[] buffer;
 	}
 
-	inline int getWidth() const { return width; }
-	inline int getHeight() const { return height; }
-	inline int getSize() const { return size; }
+	inline size_t getWidth() const { return width; }
+	inline size_t getHeight() const { return height; }
+	inline size_t getSize() const { return size; }
 	inline float aspect() const { return (float)getWidth() / getHeight(); }
 
-	void set(int x, int y, const T & data) { buffer[y * width + x] = data; }
+	void set(size_t x, size_t y, const T & data) { assert(y * width + x < size); buffer[y * width + x] = data; }
 	void set(size_t index, const T & data) { assert(index < size); buffer[index] = data; }
-	void add(int x, int y, const T & data) { buffer[y * width + x] += data; }
+	void add(size_t x, size_t y, const T & data) { assert(y * width + x < size); buffer[y * width + x] += data; }
 	void add(size_t index, const T & data) { assert(index < size); buffer[index] += data; }
 
-	void clear(int x, int y) { buffer[y * width + x] = T(); }
+	void clear(size_t x, size_t y) { assert(y * width + x < size); buffer[y * width + x] = T(); }
 	void fill(const T & data) { 
-		for (int i = 0; i < size; i++) buffer[i] = data;
+		for (size_t i = 0; i < size; i++) buffer[i] = data;
 	}
-	T get(int x, int y) const { return buffer[y * width + x]; }
+	T get(size_t x, size_t y) const { assert(y * width + x < size); return buffer[y * width + x]; }
 	T get(size_t index) const { assert(index < size); return buffer[index]; }
-	void get(T & ref, int x, int y) const { ref = buffer[y * width + x]; }
+	void get(T & ref, size_t x, size_t y) const { assert(y * width + x < size); ref = buffer[y * width + x]; }
 	void get(T & ref, size_t index) const { assert(index < size); ref = buffer[index]; }
 
 	T * operator()(size_t index = 0) { return buffer + index; }
-	T * operator()(int x, int y) { return buffer + (y * width + x); }
+	T * operator()(size_t x, size_t y) { return buffer + (y * width + x); }
 
 	// x, y 在[0, 1)范围内
 	T get(float x, float y) const {
 		x = Math::fract(x);
 		y = Math::fract(y);
-		return get((int)(x * width) % width, (int)(y * height) % height);
+		return get((size_t)(x * width) % width, (size_t)(y * height) % height);
 	}
 	
 	// 二维向量(每个元素在[0, 1)范围内)

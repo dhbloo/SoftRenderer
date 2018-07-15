@@ -35,6 +35,9 @@ private:
 	FloatBuffer ZBuffer;        // Z Buffer
 	omp_lock_t * locks;         // 多线程锁
 
+	const int screenWidth;
+	const int screenHeight;
+
 	////          当前渲染设置          ////
 
 	RGBColor clearColor;        // 清除颜色
@@ -51,7 +54,7 @@ private:
 	// 画像素点(会检查越界)
 	void drawPixel(int x, int y, const RGBColor & color);
 	// 光栅化直线(Bresenham's algorithm)
-	void rasterizeLine(int x0, int y0, int x1, int y1, RGBColor c0, RGBColor c1);
+	void rasterizeLine(float x0, float y0, float x1, float y1, RGBColor c0, RGBColor c1);
 	// 光栅化反走样直线(Xiaolin Wu's line algorithm)
 	void rasterizeLine_antialiasing(float x0, float y0, float x1, float y1, RGBColor c0, RGBColor c1);
 	// 光栅化扫描线
@@ -65,6 +68,8 @@ private:
 	int checkCVV(const Vector4 & v);
 	// 坐标归一化,并转换到屏幕空间
 	void transformHomogenize(const Vector4 & src, Vector3 & dst);
+	// 直线剪裁(Liang–Barsky algorithm)
+	bool lineClipping(float & x0, float & y0, float & x1, float & y1);
 
 	// 渲染一条直线
 	void renderLine(const Line & line, const Matrix44 & transform);

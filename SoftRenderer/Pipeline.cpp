@@ -1,26 +1,35 @@
 #include "Pipeline.h"
+#include <algorithm>
 
 Pipeline::Pipeline(IntBuffer & renderBuffer) : renderBuffer(renderBuffer),
+screenWidth((int)renderBuffer.getWidth()), screenHeight((int)renderBuffer.getHeight()),
 renderState(WIREFRAME), clearState(CLEAR_COLOR_DEPTH),
 smoothLine(true),
 ZBuffer(renderBuffer.getWidth(), renderBuffer.getHeight()) {
 	locks = new omp_lock_t[renderBuffer.getHeight()];
-	for (int i = 0; i < renderBuffer.getHeight(); i++)
+	for (size_t i = 0; i < renderBuffer.getHeight(); i++)
 		omp_init_lock(locks + i);
 }
 
 Pipeline::~Pipeline() {
-	for (int i = 0; i < renderBuffer.getHeight(); i++)
+	for (size_t i = 0; i < renderBuffer.getHeight(); i++)
 		omp_destroy_lock(locks + i);
 	delete[] locks;
 }
 
 inline void Pipeline::drawPixel(int x, int y, const RGBColor & color) {
-	if (x >= 0 && x < renderBuffer.getWidth() && y >= 0 && y < renderBuffer.getHeight())
-		renderBuffer.set(x, y, color.toRGBInt());
+	assert(x >= 0 && x < screenWidth && y >= 0 && y < screenHeight);
+	renderBuffer.set(x, y, color.toRGBInt());
 }
 
-void Pipeline::rasterizeLine(int x0, int y0, int x1, int y1, RGBColor c0, RGBColor c1) {
+void Pipeline::rasterizeLine(float _x0, float _y0, float _x1, float _y1, RGBColor c0, RGBColor c1) {
+	// 直线剪裁
+	if (!lineClipping(_x0, _y0, _x1, _y1))
+		return;
+
+	int x0 = (int)_x0, y0 = (int)_y0;
+	int x1 = (int)_x0, y1 = (int)_y0;
+
 	if (x0 == x1 && y0 == y1) {
 		drawPixel(x0, y0, (c0 + c1) * 0.5f);
 	} else if (x0 == x1) {
@@ -66,6 +75,10 @@ void Pipeline::rasterizeLine(int x0, int y0, int x1, int y1, RGBColor c0, RGBCol
 }
 
 void Pipeline::rasterizeLine_antialiasing(float x0, float y0, float x1, float y1, RGBColor c0, RGBColor c1) {
+	// 直线剪裁
+	if (!lineClipping(x0, y0, x1, y1))
+		return;
+
 	bool steep = std::abs(y1 - y0) > std::abs(x1 - x0);
 
 	if (steep)
@@ -109,27 +122,37 @@ void Pipeline::rasterizeLine_antialiasing(float x0, float y0, float x1, float y1
 		drawPixel(xpxl2, ypxl2 + 1, Math::fract(yend) * xgap * c1);
 	}
 
-	RGBColor ci = (c1 - c0) / (xpxl2 - xpxl1 - 2.f);
-	RGBColor c = c0, co;
+	RGBColor colorStep = (c1 - c0) / (xpxl2 - xpxl1 - 2.f);  // 颜色步进
+	RGBColor colorDst = c0;    // 目标颜色
+	RGBColor colorSrc;         // 画布上的源颜色
+
 	if (steep) {
 		for (int x = xpxl1 + 1; x < xpxl2; x++) {
 			float fpart = Math::fract(intery);
-			co.setRGBInt(renderBuffer.get((int)intery, x));
-			drawPixel((int)intery, x, Math::lerp(co, c, 1.0f - fpart));
-			co.setRGBInt(renderBuffer.get((int)intery + 1, x));
-			drawPixel((int)intery + 1, x, Math::lerp(co, c, fpart));
+			size_t coordX = (size_t)x;
+			size_t coordY = (size_t)intery;
+
+			colorSrc = renderBuffer.get(coordY, coordX);
+			drawPixel(coordY,     coordX, Math::lerp(colorSrc, colorDst, 1.0f - fpart));
+			colorSrc = renderBuffer.get(coordY + 1, coordX);
+			drawPixel(coordY + 1, coordX, Math::lerp(colorSrc, colorDst, fpart));
+
 			intery += gradient;
-			c += ci;
+			colorDst += colorStep;
 		}
 	} else {
 		for (int x = xpxl1 + 1; x < xpxl2; x++) {
 			float fpart = Math::fract(intery);
-			co.setRGBInt(renderBuffer.get(x, (int)intery));
-			drawPixel(x, (int)intery, Math::lerp(co, c, 1.0f - fpart));
-			co.setRGBInt(renderBuffer.get(x, (int)intery + 1));
-			drawPixel(x, (int)intery + 1, Math::lerp(co, c, fpart));
+			size_t coordX = (size_t)x;
+			size_t coordY = (size_t)intery;
+
+			colorSrc = renderBuffer.get(coordX, coordY);
+			drawPixel(coordX, coordY,     Math::lerp(colorSrc, colorDst, 1.0f - fpart));
+			colorSrc = renderBuffer.get(coordX, coordY + 1);
+			drawPixel(coordX, coordY + 1, Math::lerp(colorSrc, colorDst, fpart));
+
 			intery += gradient;
-			c += ci;
+			colorDst += colorStep;
 		}
 	}
 	
@@ -138,12 +161,12 @@ void Pipeline::rasterizeLine_antialiasing(float x0, float y0, float x1, float y1
 void Pipeline::rasterizeScanline(Scanline & scanline) {
 	int * fbPtr = renderBuffer(0, scanline.y);
 	float * zbPtr = ZBuffer(0, scanline.y);
-	int x0 = MAX(scanline.x0, 0), x1 = MIN(scanline.x1, renderBuffer.getWidth() - 1);
+	int x0 = MAX(scanline.x0, 0), x1 = MIN(scanline.x1, screenWidth - 1);
 	TVertex vi = scanline.v0, v;
 	RGBColor c;
 	int rs = currentTexture ? renderState : renderState & (~TEXTURE);
 	rs = currentShadeFunc ? rs : rs & (~SHADING);
-	float invW = 1.f / renderBuffer.getWidth(), invH = 1.f / renderBuffer.getHeight();
+	float invW = 1.f / screenWidth, invH = 1.f / screenHeight;
 	Vector3 pos;
 	omp_set_lock(locks + scanline.y);
 	for (int x = x0; x <= x1; x++) {
@@ -274,8 +297,73 @@ int Pipeline::checkCVV(const Vector4 & v) {
 
 void Pipeline::transformHomogenize(const Vector4 & src, Vector3 & dst) {
 	dst = (Vector3)src;
-	dst.x = (dst.x + 1.0f) * renderBuffer.getWidth() * 0.5f;
-	dst.y = (1.0f - dst.y) * renderBuffer.getHeight() * 0.5f;
+	dst.x = (dst.x + 1.0f) * screenWidth * 0.5f;
+	dst.y = (1.0f - dst.y) * screenHeight * 0.5f;
+}
+
+bool Pipeline::lineClipping(float & x0, float & y0, float & x1, float & y1) {
+	const float xmin = 0.f;
+	const float xmax = float(screenWidth - 1);
+	const float ymin = 0.f;
+	const float ymax = float(screenHeight - 1);
+
+	float p1 = -(x1 - x0);
+	float p2 = -p1;
+	float p3 = -(y1 - y0);
+	float p4 = -p3;
+
+	float q1 = x0 - xmin;
+	float q2 = xmax - x0;
+	float q3 = y0 - ymin;
+	float q4 = ymax - y0;
+
+	if (p1 == 0 && q1 < 0 || p3 == 0 && q3 < 0)  // line is parallel to clipping window
+		return false;
+
+	float t0 = 0.f;
+	float t1 = 1.f;
+
+	if (p1 != 0) {
+		float r1 = q1 / p1;
+		float r2 = q2 / p2;
+		if (p1 < 0) {
+			t0 = MAX(t0, r1);
+			t1 = MIN(t1, r2);
+		} else {
+			t0 = MAX(t0, r2);
+			t1 = MIN(t1, r1);
+		}
+	}
+
+	if (p3 != 0) {
+		float r3 = q3 / p3;
+		float r4 = q4 / p4;
+		if (p3 < 0) {
+			t0 = MAX(t0, r3);
+			t1 = MIN(t1, r4);
+		} else {
+			t0 = MAX(t0, r4);
+			t1 = MIN(t1, r3);
+		}
+	}
+
+	if (t0 > t1)  // reject
+		return false;
+
+	// computing new points
+	x0 = x0 + p2 * t0;
+	y0 = y0 + p4 * t0;
+	x1 = x0 + p2 * t1;
+	y1 = y0 + p4 * t1;
+
+	std::cout << x0 << ' ' << x1 << ' ' << y0 << ' ' << y1 << std::endl;
+
+	assert(x0 >= xmin && x0 < screenWidth);
+	assert(y0 >= ymin && y0 < screenHeight);
+	assert(x1 >= xmin && x1 < screenWidth);
+	assert(y1 >= ymin && y1 < screenHeight);
+
+	return true;
 }
 
 void Pipeline::renderLine(const Line & line, const Matrix44 & transform) {
@@ -292,7 +380,7 @@ void Pipeline::renderLine(const Line & line, const Matrix44 & transform) {
 	if (smoothLine) {
 		rasterizeLine_antialiasing(p0.x, p0.y, p1.x, p1.y, line.vertices[0].color, line.vertices[1].color);
 	} else {
-		rasterizeLine((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, line.vertices[0].color, line.vertices[1].color);
+		rasterizeLine(p0.x, p0.y, p1.x, p1.y, line.vertices[0].color, line.vertices[1].color);
 	}
 	
 }
@@ -360,9 +448,9 @@ void Pipeline::renderMesh(const shared_ptr<Mesh> mesh, const Matrix44 & transfor
 				rasterizeLine_antialiasing(p1.x, p1.y, p2.x, p2.y, vo[1]->color, vo[2]->color);
 				rasterizeLine_antialiasing(p2.x, p2.y, p0.x, p0.y, vo[2]->color, vo[0]->color);
 			} else {
-				rasterizeLine((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, vo[0]->color, vo[1]->color);
-				rasterizeLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y, vo[1]->color, vo[2]->color);
-				rasterizeLine((int)p2.x, (int)p2.y, (int)p0.x, (int)p0.y, vo[2]->color, vo[0]->color);
+				rasterizeLine(p0.x, p0.y, p1.x, p1.y, vo[0]->color, vo[1]->color);
+				rasterizeLine(p1.x, p1.y, p2.x, p2.y, vo[1]->color, vo[2]->color);
+				rasterizeLine(p2.x, p2.y, p0.x, p0.y, vo[2]->color, vo[0]->color);
 			}
 			
 		}
