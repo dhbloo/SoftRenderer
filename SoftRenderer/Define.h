@@ -14,7 +14,7 @@
 #ifndef _DEBUG
 #define NDEBUG
 #endif
-#include "assert.h"
+#include <cassert>
 
 #include "Math.h"
 

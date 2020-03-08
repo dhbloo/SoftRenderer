@@ -356,8 +356,6 @@ bool Pipeline::lineClipping(float & x0, float & y0, float & x1, float & y1) {
 	x1 = x0 + p2 * t1;
 	y1 = y0 + p4 * t1;
 
-	std::cout << x0 << ' ' << x1 << ' ' << y0 << ' ' << y1 << std::endl;
-
 	assert(x0 >= xmin && x0 < screenWidth);
 	assert(y0 >= ymin && y0 < screenHeight);
 	assert(x1 >= xmin && x1 < screenWidth);
